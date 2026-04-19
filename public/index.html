@@ -1,0 +1,2692 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCPanel</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+ --bg0: #0a0a0c;
+ --bg1: #111114;
+ --bg2: #17171b;
+ --bg3: #1e1e24;
+ --bg4: #26262e;
+ --border: #2a2a34;
+ --border2: #38384a;
+ --text1: #e8e8f0;
+ --text2: #9898b0;
+ --text3: #5a5a72;
+ --green: #22c55e;
+ --green-dim: #15803d;
+ --green-bg: rgba(34,197,94,0.08);
+ --amber: #f59e0b;
+ --amber-bg: rgba(245,158,11,0.08);
+ --red: #ef4444;
+ --red-bg: rgba(239,68,68,0.08);
+ --blue: #3b82f6;
+ --blue-bg: rgba(59,130,246,0.08);
+ --accent: #7c3aed;
+ --accent2: #a855f7;
+ --radius: 8px;
+ --radius-lg: 12px;
+ --font: 'Outfit', sans-serif;
+ --mono: 'JetBrains Mono', monospace;
+}
+
+:root[data-theme="light"] {
+ --bg0: #f5f5f7;
+ --bg1: #ffffff;
+ --bg2: #fafafa;
+ --bg3: #f0f0f2;
+ --bg4: #e8e8ea;
+ --border: #e0e0e4;
+ --border2: #d0d0d6;
+ --text1: #1a1a1c;
+ --text2: #4a4a52;
+ --text3: #8a8a92;
+ --green-dim: #16a34a;
+ --green-bg: rgba(34,197,94,0.12);
+ --amber-bg: rgba(245,158,11,0.12);
+ --red-bg: rgba(239,68,68,0.12);
+ --blue-bg: rgba(59,130,246,0.12);
+}
+
+html, body { height: 100%; overflow: hidden; background: var(--bg0); color: var(--text1); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+
+/* ── LAYOUT ── */
+.app { display: grid; grid-template-rows: 38px 1fr; height: 100vh; }
+
+/* ── TITLEBAR ── */
+.titlebar {
+ -webkit-app-region: drag;
+ background: var(--bg1);
+ border-bottom: 1px solid var(--border);
+ display: flex; align-items: center; justify-content: space-between;
+ padding: 0 16px 0 14px;
+ user-select: none;
+}
+.titlebar-left { display: flex; align-items: center; gap: 8px; }
+.app-logo { width: 18px; height: 18px; background: var(--accent); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #fff; flex-shrink: 0; }
+.app-title { font-size: 13px; font-weight: 500; color: var(--text2); letter-spacing: 0.02em; }
+.titlebar-controls { display: flex; gap: 4px; -webkit-app-region: no-drag; }
+.win-btn {
+ width: 28px; height: 22px; border: none; background: transparent; cursor: pointer;
+ border-radius: 4px; display: flex; align-items: center; justify-content: center;
+ color: var(--text3); transition: background 0.1s, color 0.1s; font-size: 12px;
+}
+.win-btn:hover { background: var(--bg3); color: var(--text1); }
+.win-btn.close:hover { background: var(--red); color: #fff; }
+
+/* ── MAIN AREA ── */
+.main { display: grid; grid-template-columns: 220px 1fr; overflow: hidden; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+ background: var(--bg1); border-right: 1px solid var(--border);
+ display: flex; flex-direction: column; overflow: hidden;
+}
+.sidebar-top { padding: 14px 12px 8px; }
+.sidebar-label { font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 4px; margin-bottom: 6px; }
+.server-list { flex: 1; overflow-y: auto; padding: 0 8px; }
+.server-list::-webkit-scrollbar { width: 10px; }
+.server-list::-webkit-scrollbar-track {
+ background: var(--bg0);
+ border-radius: 5px;
+ margin: 4px 0;
+}
+.server-list::-webkit-scrollbar-thumb {
+ background: linear-gradient(180deg, var(--accent), var(--accent2));
+ border-radius: 5px;
+ border: 2px solid var(--bg1);
+ box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+.server-list::-webkit-scrollbar-thumb:hover {
+ background: linear-gradient(180deg, var(--accent2), var(--accent));
+ box-shadow: 0 0 12px var(--accent);
+}
+
+.srv-item {
+ display: flex; align-items: center; gap: 9px;
+ padding: 8px 10px; border-radius: var(--radius);
+ cursor: pointer; margin-bottom: 2px;
+ transition: background 0.1s;
+ border: 1px solid transparent;
+}
+.srv-item:hover { background: var(--bg3); }
+.srv-item.active { background: var(--bg3); border-color: var(--border2); }
+.srv-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.srv-dot.running { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.srv-dot.stopped { background: var(--text3); }
+.srv-dot.starting { background: var(--amber); animation: pulse 1s infinite; }
+.srv-info { flex: 1; min-width: 0; }
+.srv-name { font-size: 13px; font-weight: 500; color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.srv-meta { font-size: 11px; color: var(--text3); }
+
+.new-server-btn {
+ margin: 8px; padding: 9px 12px;
+ background: transparent; border: 1px dashed var(--border2);
+ border-radius: var(--radius); color: var(--text2); font-size: 13px;
+ font-family: var(--font); cursor: pointer; text-align: center;
+ transition: all 0.15s;
+}
+.new-server-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(168,85,247,0.05); }
+
+/* ── CONTENT AREA ── */
+.content { display: flex; flex-direction: column; overflow: hidden; background: var(--bg0); }
+
+/* ── TOPBAR ── */
+.topbar {
+ display: flex; align-items: center; justify-content: space-between;
+ padding: 14px 20px; border-bottom: 1px solid var(--border);
+ background: var(--bg1); flex-shrink: 0;
+}
+.topbar-left .server-title { font-size: 18px; font-weight: 600; color: var(--text1); }
+.topbar-left .server-subtitle { font-size: 12px; color: var(--text2); margin-top: 1px; }
+.topbar-actions { display: flex; gap: 8px; }
+
+.btn {
+ padding: 7px 14px; border-radius: var(--radius);
+ border: 1px solid var(--border2); background: var(--bg3);
+ color: var(--text1); font-family: var(--font); font-size: 13px; font-weight: 500;
+ cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+}
+.btn:hover { border-color: var(--border2); background: var(--bg4); }
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.btn.success { background: var(--green-bg); border-color: var(--green-dim); color: var(--green); }
+.btn.danger { background: var(--red-bg); border-color: #7f1d1d; color: var(--red); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 2px; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--bg1); flex-shrink: 0; }
+.tab { padding: 10px 14px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text3); border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.1s; }
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--text1); border-bottom-color: var(--accent2); }
+
+/* ── PANELS ── */
+.panels { flex: 1; overflow: hidden; }
+.panel { display: none; height: 100%; overflow-y: auto; padding: 20px; }
+.panel.active { display: block; }
+.panel::-webkit-scrollbar { width: 12px; }
+.panel::-webkit-scrollbar-track {
+ background: var(--bg2);
+ border-radius: 6px;
+ margin: 4px;
+}
+.panel::-webkit-scrollbar-thumb {
+ background: linear-gradient(180deg, var(--accent), var(--accent2));
+ border-radius: 6px;
+ border: 3px solid var(--bg2);
+ box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+.panel::-webkit-scrollbar-thumb:hover {
+ background: linear-gradient(180deg, var(--accent2), var(--accent));
+ box-shadow: 0 0 15px var(--accent);
+}
+
+/* ── STATS GRID ── */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; }
+.stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+.stat-value { font-size: 26px; font-weight: 600; color: var(--text1); margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+.stat-sub { font-size: 11px; color: var(--text3); }
+
+/* ── CONSOLE ── */
+.console-wrap { background: var(--bg1); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.console-header { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px; }
+.console-header span { font-size: 12px; font-weight: 500; color: var(--text2); }
+.console-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+.console-body { height: 260px; overflow-y: auto; padding: 10px 14px; font-family: var(--mono); font-size: 12px; line-height: 1.7; }
+.console-body::-webkit-scrollbar { width: 10px; }
+.console-body::-webkit-scrollbar-track {
+ background: var(--bg0);
+ border-radius: 5px;
+ margin: 4px 0;
+}
+.console-body::-webkit-scrollbar-thumb {
+ background: linear-gradient(180deg, var(--accent), var(--accent2));
+ border-radius: 5px;
+ border: 2px solid var(--bg1);
+ box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+.console-body::-webkit-scrollbar-thumb:hover {
+ background: linear-gradient(180deg, var(--accent2), var(--accent));
+ box-shadow: 0 0 12px var(--accent);
+}
+.log-line { color: var(--text2); }
+.log-line.info { color: #7dd3fc; }
+.log-line.ok { color: #86efac; }
+.log-line.warn { color: #fcd34d; }
+.log-line.error { color: #fca5a5; }
+.console-input-row { display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
+.console-input {
+ flex: 1; background: var(--bg2); border: 1px solid var(--border2);
+ border-radius: var(--radius); padding: 8px 12px;
+ color: var(--text1); font-family: var(--mono); font-size: 12px;
+ outline: none; transition: border-color 0.15s;
+}
+.console-input:focus { border-color: var(--accent); }
+.console-input::placeholder { color: var(--text3); }
+
+/* ── PLAYERS ── */
+.players-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 16px; }
+.player-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+.player-avatar { width: 30px; height: 30px; border-radius: 6px; background: var(--bg4); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--accent2); flex-shrink: 0; }
+.player-name { font-size: 13px; font-weight: 500; }
+.player-ping { font-size: 11px; color: var(--text3); }
+
+/* ── CONFIG FORM ── */
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--text2); }
+.form-input, .form-select {
+ padding: 8px 12px; background: var(--bg2); border: 1px solid var(--border2);
+ border-radius: var(--radius); color: var(--text1); font-family: var(--font); font-size: 13px;
+ outline: none; transition: border-color 0.15s;
+}
+.form-input:focus, .form-select:focus { border-color: var(--accent); }
+.form-select { cursor: pointer; }
+.form-select option { background: var(--bg2); }
+
+/* Scrollbar for all scrollable areas */
+*::-webkit-scrollbar { width: 12px; height: 12px; }
+*::-webkit-scrollbar-track {
+ background: var(--bg1);
+ border-radius: 6px;
+ margin: 4px;
+}
+*::-webkit-scrollbar-thumb {
+ background: linear-gradient(180deg, var(--accent), var(--accent2));
+ border-radius: 6px;
+ border: 3px solid var(--bg1);
+ box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+*::-webkit-scrollbar-thumb:hover {
+ background: linear-gradient(180deg, var(--accent2), var(--accent));
+ box-shadow: 0 0 15px var(--accent);
+}
+
+/* ── CORE PICKER ── */
+.cores-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.core-card {
+ background: var(--bg2); border: 1px solid var(--border);
+ border-radius: var(--radius-lg); padding: 14px 16px;
+ cursor: pointer; transition: all 0.15s;
+}
+.core-card:hover { border-color: var(--border2); background: var(--bg3); }
+.core-card.selected { border-color: var(--accent); background: rgba(124,58,237,0.1); }
+.core-name { font-size: 14px; font-weight: 600; color: var(--text1); }
+.core-desc { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.core-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-top: 6px; font-weight: 500; }
+.badge-rec { background: var(--green-bg); color: var(--green); }
+.badge-warn { background: var(--amber-bg); color: var(--amber); }
+
+/* ── DOWNLOAD PROGRESS ── */
+.progress-bar-wrap { background: var(--bg3); border-radius: 4px; height: 4px; overflow: hidden; margin-top: 8px; }
+.progress-bar { height: 100%; background: var(--accent2); border-radius: 4px; transition: width 0.3s; }
+
+/* ── EMPTY STATE ── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 12px; color: var(--text3); }
+.empty-icon { font-size: 40px; opacity: 0.3; }
+.empty-title { font-size: 16px; font-weight: 500; color: var(--text2); }
+.empty-sub { font-size: 13px; }
+
+/* ── SECTION TITLE ── */
+.section-title { font-size: 12px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+/* ── COLOR PRESETS ── */
+.color-preset {
+ width: 32px;
+ height: 32px;
+ border-radius: 6px;
+ border: 2px solid var(--border);
+ cursor: pointer;
+ transition: all 0.15s;
+}
+.color-preset:hover {
+ transform: scale(1.1);
+ border-color: var(--text1);
+ box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ── CUSTOM DIALOG ── */
+.dialog-overlay {
+ position: fixed;
+ inset: 0;
+ background: rgba(0,0,0,0.75);
+ display: none;
+ align-items: center;
+ justify-content: center;
+ z-index: 1000;
+ backdrop-filter: blur(4px);
+}
+.dialog-overlay.open { display: flex; }
+.dialog-box {
+ background: var(--bg2);
+ border: 1px solid var(--border2);
+ border-radius: var(--radius-lg);
+ width: 420px;
+ max-width: 90vw;
+ padding: 24px;
+ box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+ animation: dialogSlideIn 0.2s ease-out;
+}
+@keyframes dialogSlideIn {
+ from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+ to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.dialog-icon {
+ width: 48px;
+ height: 48px;
+ border-radius: 50%;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 24px;
+ margin: 0 auto 16px;
+}
+.dialog-icon.warning {
+ background: var(--amber-bg);
+ color: var(--amber);
+}
+.dialog-icon.danger {
+ background: var(--red-bg);
+ color: var(--red);
+}
+.dialog-icon.info {
+ background: var(--blue-bg);
+ color: var(--blue);
+}
+.dialog-title {
+ font-size: 18px;
+ font-weight: 600;
+ text-align: center;
+ margin-bottom: 8px;
+ color: var(--text1);
+}
+.dialog-message {
+ font-size: 14px;
+ color: var(--text2);
+ text-align: center;
+ margin-bottom: 24px;
+ line-height: 1.5;
+}
+.dialog-buttons {
+ display: flex;
+ gap: 8px;
+ justify-content: center;
+}
+
+/* ── CREATE MODAL ── */
+.modal-overlay {
+ position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+ display: none; align-items: center; justify-content: center; z-index: 100;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+ background: var(--bg2); border: 1px solid var(--border2);
+ border-radius: var(--radius-lg); width: 560px; max-height: 80vh;
+ overflow-y: auto; padding: 24px;
+}
+.modal::-webkit-scrollbar { width: 12px; }
+.modal::-webkit-scrollbar-track {
+ background: var(--bg1);
+ border-radius: 6px;
+ margin: 4px;
+}
+.modal::-webkit-scrollbar-thumb {
+ background: linear-gradient(180deg, var(--accent), var(--accent2));
+ border-radius: 6px;
+ border: 3px solid var(--bg1);
+ box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+.modal::-webkit-scrollbar-thumb:hover {
+ background: linear-gradient(180deg, var(--accent2), var(--accent));
+ box-shadow: 0 0 15px var(--accent);
+}
+.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+/* ── ANIMATIONS ── */
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+.slide-in { animation: slideIn 0.3s ease-out; }
+.fade-in { animation: fadeIn 0.2s ease-out; }
+
+/* ── PLUGIN DROP ZONE ── */
+.plugin-drop-zone {
+ border: 2px dashed var(--border2);
+ border-radius: var(--radius-lg);
+ padding: 40px 20px;
+ text-align: center;
+ cursor: pointer;
+ transition: all 0.2s;
+ background: var(--bg2);
+ margin-bottom: 20px;
+}
+.plugin-drop-zone:hover {
+ border-color: var(--accent);
+ background: rgba(124,58,237,0.05);
+}
+.plugin-drop-zone.drag-over {
+ border-color: var(--accent2);
+ background: rgba(168,85,247,0.1);
+ border-style: solid;
+}
+.drop-zone-icon {
+ display: flex;
+ gap: 12px;
+ justify-content: center;
+ align-items: center;
+ margin-bottom: 16px;
+ font-size: 48px;
+}
+.file-icon {
+ transition: transform 0.2s;
+}
+.file-icon.filled {
+ opacity: 1;
+}
+.file-icon.empty {
+ opacity: 0.3;
+ border: 2px dashed var(--border2);
+ border-radius: 8px;
+ padding: 8px;
+}
+.plugin-drop-zone:hover .file-icon {
+ transform: translateY(-4px);
+}
+.drop-zone-text {
+ font-size: 16px;
+ font-weight: 500;
+ color: var(--text1);
+ margin-bottom: 4px;
+}
+.drop-zone-subtext {
+ font-size: 13px;
+ color: var(--text3);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+ <!-- Titlebar -->
+ <div class="titlebar">
+ <div class="titlebar-left">
+ <span class="app-title">MCPanel</span>
+ </div>
+ <div class="titlebar-controls">
+ <button class="win-btn" onclick="api.minimize()" title="Свернуть">─</button>
+ <button class="win-btn" onclick="api.maximize()" title="Развернуть">□</button>
+ <button class="win-btn close" onclick="api.close()" title="Закрыть">✖</button>
+ </div>
+ </div>
+
+ <!-- Main -->
+ <div class="main">
+
+ <!-- Sidebar -->
+ <div class="sidebar">
+ <div class="sidebar-top">
+ <div class="sidebar-label"></div>
+ </div>
+ <div class="server-list" id="serverList">
+ <div class="empty-state" style="height:120px;font-size:12px"></div>
+ </div>
+ <button class="new-server-btn" onclick="openCreateModal()"></button>
+ <button class="new-server-btn" onclick="openSettings()" style="margin-top:8px;background:var(--bg2)"></button>
+ </div>
+
+ <!-- Content -->
+ <div class="content" id="contentArea">
+
+ <!-- Empty state -->
+ <div class="empty-state" id="emptyState">
+ <div class="empty-icon">⬡</div>
+ <div class="empty-title"></div>
+ <div class="empty-sub"></div>
+ </div>
+
+ <!-- Server view (hidden until server selected) -->
+ <div id="serverView" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+ <div class="topbar">
+ <div class="topbar-left">
+ <div class="server-title" id="viewName">—</div>
+ <div class="server-subtitle" id="viewMeta">—</div>
+ </div>
+ <div class="topbar-actions">
+ <button class="btn" onclick="openFolder()" title="Открыть папку">📁</button>
+ <button class="btn" id="btnRestart" onclick="restartServer()" disabled></button>
+ <button class="btn success" id="btnStart" onclick="startServer()"></button>
+ <button class="btn danger" id="btnStop" onclick="stopServer()" style="display:none"></button>
+ <button class="btn danger" id="btnDelete" onclick="deleteServer()" title="Удалить сервер">🗑</button>
+ </div>
+ </div>
+
+ <div class="tabs">
+ <div class="tab active" data-tab="overview" onclick="switchTab('overview',this)"></div>
+ <div class="tab" data-tab="config" onclick="switchTab('config',this)"></div>
+ <div class="tab" id="paperTab" data-tab="paper" onclick="switchTab('paper',this)" style="display:none"></div>
+ <div class="tab" data-tab="plugins" onclick="switchTab('plugins',this)"></div>
+ <div class="tab" data-tab="backups" onclick="switchTab('backups',this)"></div>
+ </div>
+
+ <div class="panels">
+ <!-- Overview -->
+ <div class="panel active" id="tab-overview">
+ <div class="stats-grid">
+ <div class="stat-card"><div class="stat-label"></div><div class="stat-value" id="sPlayers">—</div><div class="stat-sub"></div></div>
+ <div class="stat-card"><div class="stat-label"></div><div class="stat-value" id="sRam">—</div><div class="stat-sub"></div></div>
+ <div class="stat-card"><div class="stat-label"></div><div class="stat-value" id="sUptime">—</div><div class="stat-sub"></div></div>
+ <div class="stat-card"><div class="stat-label">Порт</div><div class="stat-value" id="sPort">—</div><div class="stat-sub">TCP</div></div>
+ </div>
+
+ <div class="section-title"></div>
+ <div class="console-wrap">
+ <div class="console-header">
+ <div class="console-dot"></div>
+ <span id="consoleStatus"></span>
+ </div>
+ <div class="console-body" id="consoleBody"></div>
+ <div class="console-input-row">
+ <input class="console-input" id="cmdInput" placeholder="Введи команду (Enter)..." onkeydown="if(event.key==='Enter')sendCommand()">
+ <button class="btn" onclick="sendCommand()">↵</button>
+ </div>
+ </div>
+
+ <div style="margin-top:16px">
+ <div class="section-title"></div>
+ <div class="players-grid" id="playersList">
+ <div style="color:var(--text3);font-size:12px;grid-column:1/-1">Нет данных</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Config -->
+ <div class="panel" id="tab-config">
+ <div class="config-grid" id="configGrid"></div>
+ <div style="margin-top:20px;display:flex;gap:8px">
+ <button class="btn primary" onclick="saveConfig()">Сохранить</button>
+ <button class="btn" onclick="loadConfig()">Сбросить</button>
+ </div>
+ </div>
+
+ <!-- Paper Config -->
+ <div class="panel" id="tab-paper">
+ <div style="margin-bottom:16px">
+ <div style="color:var(--text3);font-size:12px;margin-bottom:12px">paper.yml</div>
+ </div>
+ <textarea id="paperConfigEditor" style="width:100%;height:600px;font-family:'JetBrains Mono',monospace;font-size:12px;padding:12px;background:var(--bg2);color:var(--text1);border:1px solid var(--border);border-radius:6px;resize:vertical"></textarea>
+ <div style="margin-top:12px;display:flex;gap:8px">
+ <button class="btn primary" onclick="savePaperConfig()"> <span class="save-text"></span></button>
+ <button class="btn" onclick="loadPaperConfig()"> <span class="reset-text"></span></button>
+ </div>
+ </div>
+
+ <!-- Plugins -->
+ <div class="panel" id="tab-plugins">
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+ <div class="section-title" style="margin:0">Файлы плагинов</div>
+ <button class="btn primary" onclick="addPluginClick()"></button>
+ <input type="file" id="pluginFileInput" accept=".jar" multiple style="display:none">
+ </div>
+
+ <!-- Breadcrumb navigation -->
+ <div id="pluginBreadcrumb" style="display:none;margin-bottom:12px;padding:8px;background:var(--bg2);border-radius:6px;font-size:12px"></div>
+
+ <!-- File browser -->
+ <div id="pluginBrowser" style="background:var(--bg1);border:1px solid var(--border);border-radius:6px;padding:8px;min-height:400px">
+ <div style="color:var(--text3);font-size:12px"></div>
+ </div>
+ </div>
+
+ <!-- Backups -->
+ <div class="panel" id="tab-backups">
+ <div style="margin-bottom:16px;display:flex;gap:8px">
+ <input class="form-input" id="worldName" placeholder="Название мира" value="world" style="width:200px">
+ <button class="btn primary" onclick="createBackup()"></button>
+ <button class="btn" onclick="loadBackups()"></button>
+ </div>
+
+ <div class="section-title"></div>
+ <div id="backupsList">
+ <div style="color:var(--text3);font-size:12px"></div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+</div>
+
+<!-- Create server modal -->
+<div class="modal-overlay" id="createModal">
+ <div class="modal">
+ <div class="modal-title"></div>
+
+ <div style="margin-bottom:16px">
+ <div class="section-title">Ядро</div>
+ <div class="cores-grid" id="coreGrid">
+ <div class="core-card selected" data-core="paper" onclick="selectCore(this,'paper')">
+ <div class="core-name">Paper</div>
+ <div class="core-desc">Производительность + плагины</div>
+ <span class="core-badge badge-rec">Рекомендуется</span>
+ </div>
+ <div class="core-card" data-core="vanilla" onclick="selectCore(this,'vanilla')">
+ <div class="core-name">Vanilla</div>
+ <div class="core-desc">Оригинальный Mojang сервер</div>
+ </div>
+ <div class="core-card" data-core="fabric" onclick="selectCore(this,'fabric')">
+ <div class="core-name">Fabric</div>
+ <div class="core-desc">Лёгкие моды</div>
+ </div>
+ <div class="core-card" data-core="forge" onclick="selectCore(this,'forge')">
+ <div class="core-name">Forge</div>
+ <div class="core-desc">Тяжёлые модпаки</div>
+ <span class="core-badge badge-warn">Нужно больше RAM</span>
+ </div>
+ <div class="core-card" data-core="velocity" onclick="selectCore(this,'velocity')">
+ <div class="core-name">Velocity</div>
+ <div class="core-desc">Прокси-сервер</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="config-grid" style="margin-bottom:16px">
+ <div class="form-group">
+ <label class="form-label">Название</label>
+ <input class="form-input" id="newName" placeholder="Мой сервер" value="Мой сервер">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Версия</label>
+ <select class="form-select" id="newVersion"><option></option></select>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Порт</label>
+ <input class="form-input" id="newPort" type="number" value="25565">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Макс. игроков</label>
+ <input class="form-input" id="newMaxPlayers" type="number" value="20">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Режим</label>
+ <select class="form-select" id="newGamemode">
+ <option value="survival">Выживание</option>
+ <option value="creative">Творчество</option>
+ <option value="adventure">Приключение</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Сложность</label>
+ <select class="form-select" id="newDifficulty">
+ <option value="normal">Нормальная</option>
+ <option value="easy">Лёгкая</option>
+ <option value="hard">Сложная</option>
+ <option value="peaceful">Мирная</option>
+ </select>
+ </div>
+ </div>
+
+ <div id="downloadProgress" style="display:none;margin-bottom:16px">
+ <div style="font-size:12px;color:var(--text2);margin-bottom:4px" id="downloadStatus">Скачиваем ядро...</div>
+ <div class="progress-bar-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+ </div>
+
+ <div class="modal-footer">
+ <button class="btn" onclick="closeCreateModal()">Отмена</button>
+ <button class="btn primary" id="btnCreate" onclick="createServer()">Создать сервер</button>
+ </div>
+ </div>
+</div>
+
+<!-- Plugin config modal -->
+<div class="modal-overlay" id="modalOverlay">
+ <div class="modal">
+ <div id="modalContent"></div>
+ </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settingsModal">
+ <div class="modal">
+ <div class="modal-title"></div>
+
+ <div style="margin-bottom:20px">
+ <div class="section-title">Производительность</div>
+
+ <div class="form-group">
+ <label class="form-label">Максимум логов в памяти (когда сервер запущен)</label>
+ <input class="form-input" id="settingMaxLogs" type="number" value="1000" min="100" max="5000">
+ <div class="setting-hint" data-hint="maxLogs"></div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Логов после остановки сервера</label>
+ <input class="form-input" id="settingStoppedLogs" type="number" value="100" min="50" max="500">
+ <div class="setting-hint" data-hint="stoppedLogs"></div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Интервал обновления статистики (секунды)</label>
+ <input class="form-input" id="settingStatsInterval" type="number" value="10" min="5" max="60">
+ <div class="setting-hint" data-hint="statsInterval"></div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Время кэширования данных (секунды)</label>
+ <input class="form-input" id="settingCacheTime" type="number" value="30" min="10" max="300">
+ <div class="setting-hint" data-hint="cacheTime"></div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Максимум файлов в браузере плагинов</label>
+ <input class="form-input" id="settingMaxPluginFiles" type="number" value="0" min="0" max="1000">
+ <div class="setting-hint" data-hint="maxPluginFiles"></div>
+ </div>
+ </div>
+
+ <div style="margin-bottom:20px">
+ <div class="section-title">Интерфейс</div>
+
+ <div class="form-group">
+ <label class="form-label">Язык</label>
+ <select class="form-select" id="settingLanguage">
+ <option value="ru">Русский</option>
+ <option value="en">English</option>
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Тема</label>
+ <select class="form-select" id="settingTheme">
+ <option value="dark">Тёмная</option>
+ <option value="light">Светлая</option>
+ </select>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Цвет акцента</label>
+ <div style="display:flex;gap:8px;align-items:center">
+ <input class="form-input" id="settingAccentColor" type="color" value="#7c3aed" list="accentPresets" style="width:80px;height:40px;padding:4px;cursor:pointer">
+ <datalist id="accentPresets">
+ <option value="#7c3aed">#7c3aed</option>
+ <option value="#3b82f6">#3b82f6</option>
+ <option value="#06b6d4">#06b6d4</option>
+ <option value="#10b981">#10b981</option>
+ <option value="#f59e0b">#f59e0b</option>
+ <option value="#ef4444">#ef4444</option>
+ <option value="#ec4899">#ec4899</option>
+ <option value="#8b5cf6">#8b5cf6</option>
+ </datalist>
+ <input class="form-input" id="settingAccentColorHex" type="text" value="#7c3aed" maxlength="7" style="flex:1;font-family:var(--mono);font-size:12px" oninput="syncColorPicker('settingAccentColor', this.value)">
+ </div>
+ <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+ <button class="color-preset" style="background:#7c3aed" onclick="setColor('settingAccentColor','#7c3aed')" title="Фиолетовый"></button>
+ <button class="color-preset" style="background:#3b82f6" onclick="setColor('settingAccentColor','#3b82f6')" title="Синий"></button>
+ <button class="color-preset" style="background:#06b6d4" onclick="setColor('settingAccentColor','#06b6d4')" title="Голубой"></button>
+ <button class="color-preset" style="background:#10b981" onclick="setColor('settingAccentColor','#10b981')" title="Зелёный"></button>
+ <button class="color-preset" style="background:#f59e0b" onclick="setColor('settingAccentColor','#f59e0b')" title="Оранжевый"></button>
+ <button class="color-preset" style="background:#ef4444" onclick="setColor('settingAccentColor','#ef4444')" title="Красный"></button>
+ <button class="color-preset" style="background:#ec4899" onclick="setColor('settingAccentColor','#ec4899')" title="Розовый"></button>
+ <button class="color-preset" style="background:#8b5cf6" onclick="setColor('settingAccentColor','#8b5cf6')" title="Пурпурный"></button>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Цвет успеха (зелёный)</label>
+ <div style="display:flex;gap:8px;align-items:center">
+ <input class="form-input" id="settingGreenColor" type="color" value="#22c55e" style="width:80px;height:40px;padding:4px;cursor:pointer">
+ <input class="form-input" id="settingGreenColorHex" type="text" value="#22c55e" maxlength="7" style="flex:1;font-family:var(--mono);font-size:12px" oninput="syncColorPicker('settingGreenColor', this.value)">
+ </div>
+ <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+ <button class="color-preset" style="background:#22c55e" onclick="setColor('settingGreenColor','#22c55e')" title="Зелёный"></button>
+ <button class="color-preset" style="background:#10b981" onclick="setColor('settingGreenColor','#10b981')" title="Изумрудный"></button>
+ <button class="color-preset" style="background:#14b8a6" onclick="setColor('settingGreenColor','#14b8a6')" title="Бирюзовый"></button>
+ <button class="color-preset" style="background:#84cc16" onclick="setColor('settingGreenColor','#84cc16')" title="Лайм"></button>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Цвет ошибки (красный)</label>
+ <div style="display:flex;gap:8px;align-items:center">
+ <input class="form-input" id="settingRedColor" type="color" value="#ef4444" style="width:80px;height:40px;padding:4px;cursor:pointer">
+ <input class="form-input" id="settingRedColorHex" type="text" value="#ef4444" maxlength="7" style="flex:1;font-family:var(--mono);font-size:12px" oninput="syncColorPicker('settingRedColor', this.value)">
+ </div>
+ <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+ <button class="color-preset" style="background:#ef4444" onclick="setColor('settingRedColor','#ef4444')" title="Красный"></button>
+ <button class="color-preset" style="background:#dc2626" onclick="setColor('settingRedColor','#dc2626')" title="Тёмно-красный"></button>
+ <button class="color-preset" style="background:#f87171" onclick="setColor('settingRedColor','#f87171')" title="Светло-красный"></button>
+ <button class="color-preset" style="background:#fb923c" onclick="setColor('settingRedColor','#fb923c')" title="Оранжево-красный"></button>
+ </div>
+ </div>
+
+ <div class="form-group">
+ <label class="form-label">Цвет предупреждения (жёлтый)</label>
+ <div style="display:flex;gap:8px;align-items:center">
+ <input class="form-input" id="settingAmberColor" type="color" value="#f59e0b" style="width:80px;height:40px;padding:4px;cursor:pointer">
+ <input class="form-input" id="settingAmberColorHex" type="text" value="#f59e0b" maxlength="7" style="flex:1;font-family:var(--mono);font-size:12px" oninput="syncColorPicker('settingAmberColor', this.value)">
+ </div>
+ <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+ <button class="color-preset" style="background:#f59e0b" onclick="setColor('settingAmberColor','#f59e0b')" title="Янтарный"></button>
+ <button class="color-preset" style="background:#eab308" onclick="setColor('settingAmberColor','#eab308')" title="Жёлтый"></button>
+ <button class="color-preset" style="background:#fbbf24" onclick="setColor('settingAmberColor','#fbbf24')" title="Золотой"></button>
+ <button class="color-preset" style="background:#fb923c" onclick="setColor('settingAmberColor','#fb923c')" title="Оранжевый"></button>
+ </div>
+ </div>
+ </div>
+
+ <div class="modal-footer">
+ <button class="btn" onclick="closeSettingsModal()">Отмена</button>
+ <button class="btn primary" onclick="saveSettings()"> Сохранить</button>
+ </div>
+ </div>
+</div>
+
+<!-- Custom Dialog -->
+<div class="dialog-overlay" id="customDialog">
+ <div class="dialog-box">
+ <div class="dialog-icon" id="dialogIcon">️</div>
+ <div class="dialog-title" id="dialogTitle">Подтверждение</div>
+ <div class="dialog-message" id="dialogMessage">Вы уверены?</div>
+ <div class="dialog-buttons" id="dialogButtons"></div>
+ </div>
+</div>
+
+<!-- Language Selection Dialog -->
+<div class="dialog-overlay" id="languageDialog" style="display:none">
+ <div class="dialog-box" style="max-width:400px">
+ <div style="text-align:center;margin-bottom:24px">
+ <div style="font-size:48px;margin-bottom:16px"></div>
+ <div style="font-size:20px;font-weight:600;color:var(--text1);margin-bottom:8px">Choose your language</div>
+ <div style="font-size:20px;font-weight:600;color:var(--text1)">Выберите язык</div>
+ </div>
+ <div style="display:flex;flex-direction:column;gap:12px">
+ <button class="btn" style="padding:16px;font-size:16px;justify-content:center" onclick="selectLanguage('en')">
+ 🇬🇧 English
+ </button>
+ <button class="btn" style="padding:16px;font-size:16px;justify-content:center" onclick="selectLanguage('ru')">
+ 🇷🇺 Русский
+ </button>
+ </div>
+ </div>
+</div>
+
+<script>
+// Debug logger
+const api = window.mcpanel || {
+ // Dev fallback (when running without Electron)
+ minimize:()=>{}, maximize:()=>{}, close:()=>{},
+ listServers:()=>[], createServer:()=>{throw new Error('No Electron')},
+ deleteServer:()=>{}, openFolder:()=>{},
+ startServer:()=>{}, stopServer:()=>{}, restartServer:()=>{}, sendCommand:()=>{}, getStats:()=>null,
+ getConfig:()=>({}), saveConfig:()=>{},
+ readPaperConfig:()=>'', savePaperConfig:()=>{},
+ getCoreVersions:(c)=>['1.21.4','1.21.1','1.20.6','1.20.4'],
+ onLog:()=>()=>{}, onStats:()=>()=>{}, onServerStatus:()=>()=>{}, onDownloadProgress:()=>()=>{}
+}
+
+let state = {
+ servers: [],
+ activeId: null,
+ activeCore: 'paper',
+ logUnsubscribe: null,
+ statsUnsubscribe: null,
+ statusUnsubscribe: null,
+ downloadUnsubscribe: null,
+ configData: {},
+ serverLogs: {},
+}
+
+// ── Init ───────────────────────────────────────────────────
+async function init() {
+ // Check if this is first launch
+ const settings = JSON.parse(localStorage.getItem('mcpanel_settings') || '{}')
+ if (!settings.language) {
+ // First launch - show language selection
+ await showLanguageSelection()
+ }
+
+ // Apply UI language first
+ updateUILanguage()
+
+ state.servers = await api.listServers()
+ renderSidebar()
+
+ state.statusUnsubscribe = api.onServerStatus(({ id, status }) => {
+ const srv = state.servers.find(s => s.id === id)
+ if (srv) srv.status = status
+ renderSidebar()
+ if (id === state.activeId) {
+ updateControls(status)
+ // Show Paper tab and reload config when server starts (paper.yml is created on first start)
+ console.log('[Paper Tab] Status changed to:', status, 'Core:', srv.core)
+ if (status === 'running' && srv.core === 'paper') {
+ console.log('[Paper Tab] Server running, waiting 2s then checking for paper.yml...')
+ // Wait 2 seconds for paper.yml to be created
+ setTimeout(() => {
+ const paperTab = document.getElementById('paperTab')
+ api.readPaperConfig(srv.dir).then(() => {
+ console.log('[Paper Tab] paper.yml found after start, showing tab')
+ paperTab.style.display = 'flex'
+ if (state.paperLoaded) loadPaperConfig()
+ }).catch((err) => {
+ console.log('[Paper Tab] paper.yml still not found:', err.message)
+ paperTab.style.display = 'none'
+ })
+ }, 2000)
+ }
+ }
+ })
+}
+
+// ── Sidebar ────────────────────────────────────────────────
+function renderSidebar() {
+ const list = document.getElementById('serverList')
+ if (!state.servers.length) {
+ list.innerHTML = `<div class="empty-state" style="height:120px;font-size:12px">${t('noServers')}</div>`
+ return
+ }
+ list.innerHTML = state.servers.map(s => `
+ <div class="srv-item ${s.id === state.activeId ? 'active' : ''}" onclick="selectServer('${s.id}')">
+ <div class="srv-dot ${s.status === 'running' ? 'running' : s.status === 'starting' ? 'starting' : 'stopped'}"></div>
+ <div class="srv-info">
+ <div class="srv-name">${esc(s.name)}</div>
+ <div class="srv-meta">${s.core} ${s.version}</div>
+ </div>
+ </div>
+ `).join('')
+}
+
+// ── Select server ──────────────────────────────────────────
+async function selectServer(id) {
+ state.activeId = id
+
+ // Reset cache flags for lazy loading
+ state.configLoaded = false
+ state.pluginsLoaded = false
+ state.backupsLoaded = false
+ state.paperLoaded = false
+
+ renderSidebar()
+
+ // Unsubscribe from previous logs/stats
+ if (state.logUnsubscribe) state.logUnsubscribe()
+ if (state.statsUnsubscribe) state.statsUnsubscribe()
+
+ const srv = state.servers.find(s => s.id === id)
+ if (!srv) return
+ document.getElementById('emptyState').style.display = 'none'
+ document.getElementById('serverView').style.display = 'flex'
+ updateTitle(srv)
+ updateServerMeta(srv)
+ updateControls(srv.status)
+
+ // Show/hide Paper tab based on server core and if paper.yml exists
+ const paperTab = document.getElementById('paperTab')
+ console.log('[Paper Tab] Server core:', srv.core)
+ if (srv.core === 'paper') {
+ // Check if paper.yml exists
+ console.log('[Paper Tab] Checking if paper.yml exists...')
+ api.readPaperConfig(srv.dir).then(() => {
+ console.log('[Paper Tab] paper.yml found, showing tab')
+ paperTab.style.display = 'flex'
+ }).catch((err) => {
+ console.log('[Paper Tab] paper.yml not found:', err.message)
+ paperTab.style.display = 'none'
+ })
+ } else {
+ console.log('[Paper Tab] Not a Paper server, hiding tab')
+ paperTab.style.display = 'none'
+ }
+
+ switchTab('overview', document.querySelector('[data-tab="overview"]'))
+
+ // Clear console
+ document.getElementById('consoleBody').innerHTML = ''
+
+ // Load logs from file or memory
+ try {
+ const logs = await api.getLogs(id)
+ for (const line of logs) {
+ appendLog(line)
+ }
+ } catch (e) {
+ // Failed to load logs
+ }
+
+ // Always subscribe to logs (even if stopped, we might start it)
+ state.logUnsubscribe = api.onLog(id, (line) => {
+ appendLog(line)
+ })
+
+ // Subscribe to stats
+ state.statsUnsubscribe = api.onStats(id, (stats) => {
+ document.getElementById('sPlayers').textContent = stats.players
+ document.getElementById('sRam').textContent = stats.ram
+ document.getElementById('sUptime').textContent = formatUptime(stats.uptime)
+ })
+}
+
+function updateTitle(srv) {
+ document.getElementById('viewName').textContent = srv.name
+ document.getElementById('sPort').textContent = srv.port
+}
+
+function updateServerMeta(srv) {
+ if (!srv) return
+ document.getElementById('viewMeta').textContent =
+ `${srv.core} ${srv.version}${srv.core === 'velocity' ? ' · ' + t('proxyServer') : ''} · ${t('serverPort').toLowerCase()} ${srv.port} · ${t('max').toLowerCase()} ${srv.maxPlayers} ${t('players').toLowerCase()}`
+}
+
+function updateControls(status) {
+ const running = status === 'running' || status === 'starting'
+ const btnStart = document.getElementById('btnStart')
+ const btnStop = document.getElementById('btnStop')
+ const btnRestart = document.getElementById('btnRestart')
+
+ if (!btnStart || !btnStop || !btnRestart) {
+ return
+ }
+
+ btnStart.style.display = running ? 'none' : ''
+ btnStop.style.display = running ? '' : 'none'
+ btnRestart.disabled = !running
+
+ const statusText = status === 'running' ? t('running') : status === 'starting' ? t('starting') : t('stopped')
+ document.getElementById('consoleStatus').textContent = statusText
+ document.querySelector('.console-dot').style.background =
+ status === 'running' ? 'var(--green)' : status === 'starting' ? 'var(--amber)' : 'var(--text3)'
+
+ // Trim logs to configured lines when server stops
+ if (status === 'stopped') {
+ const body = document.getElementById('consoleBody')
+ const stoppedLogs = window.appSettings?.stoppedLogs || 100
+ if (body && body.children.length > stoppedLogs) {
+ while (body.children.length > stoppedLogs) {
+ body.removeChild(body.firstChild)
+ }
+ }
+ }
+}
+
+// ── Console ────────────────────────────────────────────────
+function appendLog(line) {
+ const body = document.getElementById('consoleBody')
+ if (!body) {
+ return
+ }
+
+ // Get current server status
+ const srv = state.servers.find(s => s.id === state.activeId)
+ const isRunning = srv && (srv.status === 'running' || srv.status === 'starting')
+
+ // Only append to DOM if server is running
+ if (isRunning) {
+ const div = document.createElement('div')
+ div.className = 'log-line' + classifyLog(line)
+ div.textContent = line
+ body.appendChild(div)
+ body.scrollTop = body.scrollHeight
+
+ // Limit to configured max lines while running
+ const maxLogs = window.appSettings?.maxLogs || 1000
+ while (body.children.length > maxLogs) body.removeChild(body.firstChild)
+ } else {
+ // Server stopped - keep only configured stopped lines
+ const stoppedLogs = window.appSettings?.stoppedLogs || 100
+ while (body.children.length > stoppedLogs) body.removeChild(body.firstChild)
+ }
+}
+
+function classifyLog(line) {
+ if (line.includes('[ERR]') || line.includes('ERROR') || line.includes('Exception')) return ' error'
+ if (line.includes('WARN')) return ' warn'
+ if (line.includes('Done!') || line.includes('joined the game') || line.includes('Server started')) return ' ok'
+ if (line.includes('[INFO]') || line.includes('Starting')) return ' info'
+ return ''
+}
+
+async function sendCommand() {
+ const input = document.getElementById('cmdInput')
+ const cmd = input.value.trim()
+ if (!cmd || !state.activeId) return
+ appendLog(`> ${cmd}`)
+ await api.sendCommand(state.activeId, cmd)
+ input.value = ''
+}
+
+// ── Server controls ────────────────────────────────────────
+async function startServer() {
+ if (!state.activeId) {
+ return
+ }
+ appendLog('[MCPanel] Запускаем сервер...')
+ updateControls('starting')
+ try {
+ const result = await api.startServer(state.activeId)
+ }
+ catch (e) {
+ appendLog(`[MCPanel] ${t('error')}: ${e.message}`)
+ }
+}
+
+async function stopServer() {
+ if (!state.activeId) return
+ appendLog('[MCPanel] ' + t('stoppingServer') + '...')
+ await api.stopServer(state.activeId)
+}
+
+async function restartServer() {
+ if (!state.activeId) return
+ appendLog('[MCPanel] Перезапускаем...')
+ await api.restartServer(state.activeId)
+}
+
+async function deleteServer() {
+ if (!state.activeId) return
+ const srv = state.servers.find(s => s.id === state.activeId)
+ const confirmed = await confirmDialog(
+ `Удалить сервер "${srv?.name}"? Все файлы будут удалены!`,
+ 'Удаление сервера'
+ )
+ if (!confirmed) return
+ await api.deleteServer(state.activeId)
+ state.servers = state.servers.filter(s => s.id !== state.activeId)
+ state.activeId = null
+ document.getElementById('serverView').style.display = 'none'
+ document.getElementById('emptyState').style.display = 'flex'
+ renderSidebar()
+}
+
+function openFolder() {
+ if (state.activeId) api.openFolder(state.activeId)
+}
+
+// ── Config ─────────────────────────────────────────────────
+async function loadConfig() {
+ if (!state.activeId) return
+ const config = await api.getConfig(state.activeId)
+ state.configData = config || {}
+ renderConfigForm(config)
+}
+
+function renderConfigForm(config) {
+ // Check if this is a Velocity server
+ const srv = state.servers.find(s => s.id === state.activeId)
+ const isVelocity = srv && srv.core === 'velocity'
+
+ let fields
+ if (isVelocity) {
+ // Velocity-specific fields
+ fields = [
+ { key: 'bind', label: 'Bind (IP:Port)', type: 'text' },
+ { key: 'show-max-players', label: t('maxPlayersLabel'), type: 'number' },
+ { key: 'motd', label: t('motdLabel'), type: 'text' },
+ { key: 'online-mode', label: t('onlineMode'), type: 'select', options: ['true','false'] },
+ { key: 'force-key-authentication', label: 'Force Key Auth', type: 'select', options: ['true','false'] },
+ { key: 'prevent-client-proxy-connections', label: 'Prevent VPN', type: 'select', options: ['false','true'] },
+ { key: 'player-info-forwarding-mode', label: 'Forwarding Mode', type: 'select', options: ['NONE','LEGACY','MODERN','BUNGEEGUARD'] },
+ { key: 'forwarding-secret', label: 'Forwarding Secret', type: 'text-with-buttons' },
+ { key: 'announce-forge', label: 'Announce Forge', type: 'select', options: ['false','true'] },
+ { key: 'kick-existing-players', label: 'Kick Duplicates', type: 'select', options: ['false','true'] },
+ { key: 'ping-passthrough', label: 'Ping Passthrough', type: 'select', options: ['DISABLED','MODS','DESCRIPTION','ALL'] },
+ { key: 'enable-player-address-logging', label: 'Log Player IPs', type: 'select', options: ['true','false'] },
+ { key: 'compression-threshold', label: 'Compression Threshold', type: 'number' },
+ { key: 'compression-level', label: 'Compression Level (-1 to 9)', type: 'number' },
+ { key: 'login-ratelimit', label: 'Login Ratelimit (ms)', type: 'number' },
+ { key: 'connection-timeout', label: 'Connection Timeout (ms)', type: 'number' },
+ { key: 'read-timeout', label: 'Read Timeout (ms)', type: 'number' },
+ { key: 'servers', label: 'Servers (JSON)', type: 'textarea', placeholder: '{"lobby": "127.0.0.1:25565", "survival": "127.0.0.1:25566"}' },
+ { key: 'try', label: 'Try Order (comma separated)', type: 'text', placeholder: 'lobby,survival' },
+ ]
+ } else {
+ // Regular server fields
+ fields = [
+ { key: 'server-port', label: t('serverPort'), type: 'number' },
+ { key: 'max-players', label: t('maxPlayersLabel'), type: 'number' },
+ { key: 'gamemode', label: t('gamemodeLabel'), type: 'select', options: ['survival','creative','adventure'] },
+ { key: 'difficulty', label: t('difficultyLabel'), type: 'select', options: ['peaceful','easy','normal','hard'] },
+ { key: 'motd', label: t('motdLabel'), type: 'text' },
+ { key: 'view-distance', label: t('viewDistance'), type: 'number' },
+ { key: 'online-mode', label: t('onlineMode'), type: 'select', options: ['true','false'] },
+ { key: 'pvp', label: t('pvpLabel'), type: 'select', options: ['true','false'] },
+ { key: 'white-list', label: t('whitelist'), type: 'select', options: ['false','true'] },
+ { key: 'spawn-monsters', label: t('spawnMonsters'), type: 'select', options: ['true','false'] },
+ ]
+ }
+
+ document.getElementById('configGrid').innerHTML = fields.map(f => {
+ const val = config[f.key] || ''
+ if (f.type === 'select') {
+ const opts = f.options.map(o => `<option value="${o}" ${val===o?'selected':''}>${o}</option>`).join('')
+ return `<div class="form-group"><label class="form-label">${f.label}</label><select class="form-select" data-key="${f.key}">${opts}</select></div>`
+ }
+ if (f.type === 'textarea') {
+ return `<div class="form-group" style="grid-column:1/-1"><label class="form-label">${f.label}</label><textarea class="form-input" data-key="${f.key}" rows="3" placeholder="${f.placeholder || ''}" style="resize:vertical;font-family:var(--mono);font-size:12px">${esc(val)}</textarea></div>`
+ }
+ if (f.type === 'text-with-buttons') {
+ return `<div class="form-group" style="grid-column:1/-1">
+ <label class="form-label">${f.label}</label>
+ <div style="display:flex;gap:8px;align-items:center">
+ <input class="form-input" type="text" data-key="${f.key}" value="${esc(val)}" style="flex:1;font-family:var(--mono);font-size:12px">
+ <button class="btn" onclick="generateForwardingSecret()" style="padding:8px 12px;font-size:12px" title="Сгенерировать новый секрет"> Генерировать</button>
+ <button class="btn" onclick="copyForwardingSecret()" style="padding:8px 12px;font-size:12px" title="Скопировать в буфер обмена"> Копировать</button>
+ </div>
+ </div>`
+ }
+ const readonlyAttr = f.readonly ? 'readonly style="background:var(--bg3);cursor:not-allowed"' : ''
+ return `<div class="form-group"><label class="form-label">${f.label}</label><input class="form-input" type="${f.type}" data-key="${f.key}" value="${esc(val)}" ${readonlyAttr} placeholder="${f.placeholder || ''}"></div>`
+ }).join('')
+}
+
+// ── Forwarding Secret helpers ─────────────────────────────────
+function generateForwardingSecret() {
+ // Generate random secret like: 0daD0211661DAWD464613646136565DFAI
+ const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+ let secret = ''
+ for (let i = 0; i < 36; i++) {
+ secret += chars.charAt(Math.floor(Math.random() * chars.length))
+ }
+
+ // Set the value in the input
+ const input = document.querySelector('[data-key="forwarding-secret"]')
+ if (input) {
+ input.value = secret
+ showToast('Секрет сгенерирован!')
+ }
+}
+
+function copyForwardingSecret() {
+ const input = document.querySelector('[data-key="forwarding-secret"]')
+ if (!input || !input.value) {
+ showToast('Нет секрета для копирования', true)
+ return
+ }
+
+ // Copy to clipboard
+ navigator.clipboard.writeText(input.value).then(() => {
+ showToast('Секрет скопирован в буфер обмена!')
+ }).catch(err => {
+ showToast('Ошибка копирования: ' + err.message, true)
+ })
+}
+
+async function saveConfig() {
+ if (!state.activeId) return
+ const inputs = document.querySelectorAll('#configGrid [data-key]')
+ const props = { ...state.configData }
+ inputs.forEach(el => {
+ props[el.dataset.key] = el.tagName === 'TEXTAREA' ? el.value : el.value
+ })
+
+ // Validate port
+ let portValue = props['server-port'] || props['bind']?.split(':')[1]
+ if (portValue) {
+ const num = parseInt(portValue)
+ if (isNaN(num) || num < 1 || num > 65535) {
+ const portInput = document.querySelector('#configGrid [data-key="server-port"], #configGrid [data-key="bind"]')
+ if (portInput) {
+ portInput.style.border = '1px solid var(--red)'
+ setTimeout(() => { portInput.style.border = '' }, 2000)
+ }
+ showToast(t('errorPortRange') + ` (${t('specified')}: ${portValue})`, true)
+ return
+ }
+ }
+
+ // Validate max-players
+ const maxPlayers = parseInt(props['max-players'])
+ if (maxPlayers && (isNaN(maxPlayers) || maxPlayers < 1 || maxPlayers > 10000)) {
+ showToast(t('errorMaxPlayersRange'), true)
+ return
+ }
+
+ try {
+ await api.saveConfig(state.activeId, props)
+ showToast(t('configSaved'))
+ // Reload server data to reflect changes
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (srv) {
+ state.servers = await api.listServers()
+ const updatedSrv = state.servers.find(s => s.id === state.activeId)
+ if (updatedSrv) {
+ updateServerMeta(updatedSrv)
+ updateTitle(updatedSrv)
+ }
+ renderSidebar()
+ }
+ } catch (e) { showToast(t('error') + ': ' + e.message, true) }
+}
+
+// ── Paper Config ───────────────────────────────────────────
+async function loadPaperConfig() {
+ if (!state.activeId) return
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (!srv) return
+
+ // Only load for Paper servers
+ if (srv.core !== 'paper') {
+ document.getElementById('paperConfigEditor').value = 'Paper config is only available for Paper servers'
+ return
+ }
+
+ try {
+ const content = await api.readPaperConfig(srv.dir)
+ document.getElementById('paperConfigEditor').value = content
+ } catch (e) {
+ showToast('Error loading paper.yml: ' + e.message, true)
+ document.getElementById('paperConfigEditor').value = 'Error: ' + e.message
+ }
+}
+
+async function savePaperConfig() {
+ if (!state.activeId) return
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (!srv) return
+
+ const content = document.getElementById('paperConfigEditor').value
+
+ try {
+ await api.savePaperConfig(srv.dir, content)
+ showToast('Paper конфиг сохранён!')
+ } catch (e) {
+ showToast('Ошибка сохранения: ' + e.message, true)
+ }
+}
+
+// ── Tabs ───────────────────────────────────────────────────
+function switchTab(name, el) {
+ document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+ document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'))
+ if (el) el.classList.add('active')
+ document.getElementById('tab-' + name).classList.add('active')
+
+ // Lazy loading - load data only when tab is opened
+ if (name === 'config') {
+ if (!state.configLoaded) {
+ loadConfig()
+ state.configLoaded = true
+ }
+ }
+ if (name === 'paper') {
+ if (!state.paperLoaded) {
+ loadPaperConfig()
+ state.paperLoaded = true
+ }
+ }
+ if (name === 'plugins') {
+ if (!state.pluginsLoaded) {
+ loadInstalledPlugins()
+ initPluginDropZone()
+ state.pluginsLoaded = true
+ }
+ }
+ if (name === 'backups') {
+ if (!state.backupsLoaded) {
+ loadBackups()
+ state.backupsLoaded = true
+ }
+ }
+}
+
+// ── Plugins ────────────────────────────────────────────────
+function initPluginDropZone() {
+ const fileInput = document.getElementById('pluginFileInput')
+ if (!fileInput) return
+
+ // File input change
+ fileInput.addEventListener('change', (e) => {
+ const files = Array.from(e.target.files)
+ handlePluginFiles(files)
+ fileInput.value = '' // Reset input
+ })
+}
+
+async function handlePluginFiles(files) {
+ if (!state.activeId) {
+ showToast('Выберите сервер', true)
+ return
+ }
+
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (!srv) return
+
+ showToast(`Копируем ${files.length} плагин(ов)...`)
+
+ try {
+ for (const file of files) {
+ await api.uploadPlugin(srv.dir, file.path)
+ }
+ showToast(`${files.length} плагин(ов) установлено!`)
+ loadInstalledPlugins()
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+async function loadInstalledPlugins() {
+ if (!state.activeId) return
+
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (!srv) return
+
+ const container = document.getElementById('pluginBrowser')
+ container.innerHTML = '<div style="color:var(--text2);font-size:12px;padding:20px">' + t('loading') + '</div>'
+
+ try {
+ const plugins = await api.listPlugins(srv.dir)
+ console.log('[UI] Loaded plugins:', plugins)
+
+ // Store plugins and server in global state
+ window.currentPlugins = plugins
+ window.currentServer = srv
+ window.pluginBrowserRoot = srv.dir + '\\plugins'
+
+ // Clear cache to force fresh data
+ if (window.pluginsCache) {
+ delete window.pluginsCache['plugins:' + srv.id]
+ }
+
+ // Show plugins list (works even if plugins array is empty)
+ await showPluginsList()
+ } catch (e) {
+ console.error('[UI] Error loading plugins:', e)
+ container.innerHTML = '<div style="color:var(--red);font-size:12px;padding:20px">' + t('error') + ': ' + e.message + '</div>'
+ }
+}
+
+async function showPluginsList() {
+ const container = document.getElementById('pluginBrowser')
+ const breadcrumb = document.getElementById('pluginBreadcrumb')
+
+ breadcrumb.style.display = 'none'
+
+ let html = ''
+
+ // Show server version warning
+ // Removed - not needed
+
+ try {
+ // Check cache first
+ const cacheKey = 'plugins:' + window.currentServer.id
+ const cached = window.pluginsCache?.[cacheKey]
+ const now = Date.now()
+ const cacheTime = (window.appSettings?.cacheTime || 30) * 1000
+
+ let data
+ if (cached && (now - cached.timestamp < cacheTime)) {
+ // Use cached data if less than configured cache time
+ data = cached.data
+ } else {
+ // Get all folders and files from plugins directory
+ const pluginsDir = window.currentServer.dir + '\\plugins'
+ data = await api.browsePluginFolder(pluginsDir)
+
+ // Cache it
+ if (!window.pluginsCache) window.pluginsCache = {}
+ window.pluginsCache[cacheKey] = { data, timestamp: now }
+ }
+
+ const { files, folders } = data
+
+ // Show folders section
+ if (folders.length > 0) {
+ html += '<div style="margin-bottom:20px">'
+ html += '<div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px;margin-top:12px">' + t('folders') + '</div>'
+
+ for (const folder of folders) {
+ const safeName = folder.name.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+ const safePath = folder.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+ html += '<div class="stat-card" onclick="openPluginFolderByPath(\'' + safePath + '\')" style="margin-bottom:6px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:12px">'
+ html += '<span style="font-size:24px">📁</span>'
+ html += '<span style="font-weight:500;font-size:14px">' + safeName + '</span>'
+ html += '</div>'
+ }
+ html += '</div>'
+ }
+
+ // Show JAR files section
+ const jarFiles = files.filter(f => f.name.endsWith('.jar'))
+ if (jarFiles.length > 0) {
+ html += '<div style="font-size:11px;font-weight:500;color:var(--text2);margin-bottom:8px;margin-top:12px">' + t('jarFiles') + '</div>'
+
+ for (let i = 0; i < jarFiles.length; i++) {
+ const p = jarFiles[i]
+ const safeName = p.name.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+ const sizeKB = (p.size / 1024).toFixed(1)
+
+ // Find index in currentPlugins for delete button
+ const pluginIndex = window.currentPlugins.findIndex(pl => pl.name === p.name)
+
+ html += '<div class="stat-card" style="margin-bottom:6px;padding:12px">'
+ html += '<div style="display:flex;justify-content:space-between;align-items:center">'
+ html += '<div style="display:flex;align-items:center;gap:12px">'
+ html += '<span style="font-size:20px">📦</span>'
+ html += '<div>'
+ html += '<div style="font-weight:500;font-size:13px">' + safeName + '</div>'
+ html += '<div style="font-size:11px;color:var(--text3)">' + sizeKB + ' KB</div>'
+ html += '</div>'
+ html += '</div>'
+ if (pluginIndex >= 0) {
+ html += '<button class="btn danger" onclick="deletePluginByIndex(' + pluginIndex + ')" style="padding:6px 12px;font-size:12px">🗑</button>'
+ }
+ html += '</div>'
+ html += '</div>'
+ }
+ }
+
+ if (folders.length === 0 && jarFiles.length === 0) {
+ html += '<div style="color:var(--text3);text-align:center;padding:40px">' + t('noPlugins') + '</div>'
+ }
+
+ } catch (e) {
+ html += '<div style="color:var(--red);padding:20px">' + t('loadingError') + ': ' + e.message + '</div>'
+ }
+
+ container.innerHTML = html
+}
+
+async function openPluginFolderByPath(folderPath) {
+ window.pluginBrowserRoot = folderPath
+ await browseFolder(folderPath)
+}
+
+async function openPluginFolder(index) {
+ if (!window.currentPlugins || !window.currentPlugins[index]) return
+ if (!window.currentServer) return
+
+ const plugin = window.currentPlugins[index]
+ const srv = window.currentServer
+
+ try {
+ const folderPath = await api.getPluginFolderPath(srv.dir, plugin.name)
+
+ if (!folderPath) {
+ showToast('Папка плагина не найдена', true)
+ return
+ }
+
+ window.pluginBrowserRoot = folderPath
+ await browseFolder(folderPath)
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+async function browseFolder(folderPath) {
+ const container = document.getElementById('pluginBrowser')
+ const breadcrumb = document.getElementById('pluginBreadcrumb')
+
+ try {
+ // Check cache first
+ const cacheKey = 'folder:' + folderPath
+ const cached = window.folderCache?.[cacheKey]
+ const now = Date.now()
+
+ let data
+ if (cached && (now - cached.timestamp < 30000)) {
+ // Use cached data if less than 30 seconds old
+ data = cached.data
+ } else {
+ // Fetch fresh data
+ data = await api.browsePluginFolder(folderPath)
+
+ // Cache it
+ if (!window.folderCache) window.folderCache = {}
+ window.folderCache[cacheKey] = { data, timestamp: now }
+ }
+
+ const { files, folders } = data
+
+ // Build breadcrumb
+ breadcrumb.style.display = 'flex'
+ breadcrumb.style.alignItems = 'center'
+ breadcrumb.style.gap = '4px'
+
+ let breadcrumbHtml = '<button class="btn" onclick="showPluginsList()" style="padding:4px 8px;font-size:11px">◀ ' + t('back') + '</button>'
+
+ if (folderPath !== window.pluginBrowserRoot) {
+ const relativePath = folderPath.replace(window.pluginBrowserRoot, '').split('\\').filter(p => p)
+ let currentPath = window.pluginBrowserRoot
+
+ for (let i = 0; i < relativePath.length; i++) {
+ currentPath += '\\' + relativePath[i]
+ const safePath = currentPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+ breadcrumbHtml += '<span style="color:var(--text3)">›</span>'
+ if (i === relativePath.length - 1) {
+ breadcrumbHtml += '<span style="color:var(--text1);font-weight:500">' + relativePath[i] + '</span>'
+ } else {
+ breadcrumbHtml += '<button class="btn" onclick="browseFolder(\'' + safePath + '\')" style="padding:4px 8px;font-size:11px">' + relativePath[i] + '</button>'
+ }
+ }
+ }
+
+ breadcrumb.innerHTML = breadcrumbHtml
+
+ // Build file list
+ let html = ''
+ const totalItems = folders.length + files.length
+ const maxFiles = window.appSettings?.maxPluginFiles || 0
+ const shouldLimit = maxFiles > 0 && totalItems > maxFiles
+
+ // Show info if many items
+ if (totalItems > 100 || shouldLimit) {
+ html += '<div style="color:var(--text3);padding:8px;background:var(--bg2);border-radius:6px;margin-bottom:8px;font-size:11px">'
+ html += ' ' + t('totalItems') + ': ' + totalItems + ' (' + folders.length + ' ' + t('foldersCount') + ', ' + files.length + ' ' + t('filesCount') + ')'
+ if (shouldLimit) {
+ html += '<br>️ ' + t('showingFirst') + ' ' + maxFiles + ' ' + t('elementsSettings')
+ }
+ html += '</div>'
+ }
+
+ // Show folders (with limit if enabled)
+ const foldersToShow = shouldLimit ? folders.slice(0, Math.min(maxFiles, folders.length)) : folders
+ for (const folder of foldersToShow) {
+ const safeName = folder.name.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+ const safePath = folder.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+ html += '<div class="stat-card" onclick="browseFolder(\'' + safePath + '\')" style="margin-bottom:4px;padding:10px;cursor:pointer;display:flex;align-items:center;gap:10px">'
+ html += '<span style="font-size:20px">📁</span>'
+ html += '<span style="font-weight:500">' + safeName + '</span>'
+ html += '</div>'
+ }
+
+ // Show files (with limit if enabled)
+ const remainingLimit = shouldLimit ? maxFiles - foldersToShow.length : files.length
+ const filesToShow = shouldLimit ? files.slice(0, Math.max(0, remainingLimit)) : files
+ for (const file of filesToShow) {
+ const safeName = file.name.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+ const safePath = file.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+ const sizeKB = (file.size / 1024).toFixed(1)
+
+ if (file.isEditable) {
+ html += '<div class="stat-card" onclick="editPluginConfigInline(\'' + safePath + '\', \'' + safeName.replace(/'/g, "\\'") + '\')" style="margin-bottom:4px;padding:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center">'
+ html += '<div style="display:flex;align-items:center;gap:10px">'
+ html += '<span style="font-size:20px">📄</span>'
+ html += '<span>' + safeName + '</span>'
+ html += '</div>'
+ html += '<span style="font-size:11px;color:var(--text3)">' + sizeKB + ' KB</span>'
+ html += '</div>'
+ } else {
+ html += '<div style="margin-bottom:4px;padding:10px;background:var(--bg2);border-radius:6px;display:flex;justify-content:space-between;align-items:center;opacity:0.5">'
+ html += '<div style="display:flex;align-items:center;gap:10px">'
+ html += '<span style="font-size:20px">📄</span>'
+ html += '<span style="color:var(--text3)">' + safeName + '</span>'
+ html += '</div>'
+ html += '<span style="font-size:11px;color:var(--text3)">' + sizeKB + ' KB</span>'
+ html += '</div>'
+ }
+ }
+
+ if (folders.length === 0 && files.length === 0) {
+ html = '<div style="color:var(--text3);text-align:center;padding:40px">' + t('folderEmpty') + '</div>'
+ }
+
+ container.innerHTML = html
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+async function editPluginConfigInline(configPath, configName) {
+ try {
+ const content = await api.readPluginConfig(configPath)
+
+ let html = '<div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">'
+ html += '<div style="font-weight:600;font-size:14px"> ' + configName + '</div>'
+ html += '<div style="display:flex;gap:6px">'
+ html += '<button class="btn primary" onclick="savePluginConfigInline(\'' + configPath.replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"> ' + t('save') + '</button>'
+ html += '<button class="btn" onclick="browseFolder(window.currentEditFolder)">✖ ' + t('close') + '</button>'
+ html += '</div>'
+ html += '</div>'
+ html += '<textarea id="configEditor" style="width:100%;height:500px;font-family:monospace;font-size:12px;padding:10px;background:var(--bg2);color:var(--text1);border:1px solid var(--border);border-radius:6px;resize:vertical">'
+ html += content.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+ html += '</textarea>'
+
+ document.getElementById('pluginBrowser').innerHTML = html
+ document.getElementById('pluginBreadcrumb').style.display = 'none'
+
+ // Store current folder for back button
+ window.currentEditFolder = configPath.substring(0, configPath.lastIndexOf('\\'))
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+async function savePluginConfigInline(configPath) {
+ const content = document.getElementById('configEditor').value
+
+ try {
+ await api.writePluginConfig(configPath, content)
+ showToast(t('configSaved'))
+ await browseFolder(window.currentEditFolder)
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+function addPluginClick() {
+ document.getElementById('pluginFileInput').click()
+}
+
+
+async function deletePluginByIndex(index) {
+ if (!window.currentPlugins || !window.currentPlugins[index]) return
+
+ const plugin = window.currentPlugins[index]
+ const confirmed = await confirmDialog(
+ 'Удалить плагин "' + plugin.name + '"?',
+ 'Удаление плагина'
+ )
+ if (!confirmed) return
+
+ try {
+ await api.deletePlugin(plugin.path)
+ showToast('Плагин удалён')
+
+ // Clear cache
+ if (window.pluginsCache) {
+ delete window.pluginsCache['plugins:' + window.currentServer.id]
+ }
+ if (window.folderCache) {
+ window.folderCache = {}
+ }
+
+ // Reload the entire plugins list
+ await loadInstalledPlugins()
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+
+// ── Backups ────────────────────────────────────────────────
+async function createBackup() {
+ if (!state.activeId) return
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (!srv) return
+
+ const worldName = document.getElementById('worldName').value.trim() || 'world'
+ showToast('Создаём бэкап...')
+
+ try {
+ await api.createBackup(state.activeId, srv.dir, worldName)
+ showToast('Бэкап создан!')
+ loadBackups()
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+async function loadBackups() {
+ if (!state.activeId) return
+
+ const container = document.getElementById('backupsList')
+ container.innerHTML = '<div style="color:var(--text2);font-size:12px">' + t('loading') + '</div>'
+
+ try {
+ const backups = await api.listBackups(state.activeId)
+ if (backups.length === 0) {
+ container.innerHTML = '<div style="color:var(--text3);font-size:12px">' + t('noBackups') + '</div>'
+ return
+ }
+
+ container.innerHTML = backups.map(b => `
+ <div class="stat-card" style="margin-bottom:8px">
+ <div style="display:flex;justify-content:space-between;align-items:start">
+ <div>
+ <div style="font-weight:500;font-size:13px">${esc(b.name)}</div>
+ <div style="font-size:11px;color:var(--text3);margin-top:2px">
+ ${new Date(b.timestamp).toLocaleString('ru')} · ${(b.size / 1024 / 1024).toFixed(1)} MB
+ </div>
+ </div>
+ <div style="display:flex;gap:6px">
+ <button class="btn" onclick="restoreBackup('${b.path.replace(/\\/g, '\\\\')}','${esc(b.worldName)}')" style="padding:4px 10px;font-size:12px">↻ Восстановить</button>
+ <button class="btn danger" onclick="deleteBackup('${b.path.replace(/\\/g, '\\\\')}','${esc(b.name)}')" style="padding:4px 10px;font-size:12px"></button>
+ </div>
+ </div>
+ </div>
+ `).join('')
+ } catch (e) {
+ container.innerHTML = `<div style="color:var(--red);font-size:12px">Ошибка: ${e.message}</div>`
+ }
+}
+
+async function restoreBackup(backupPath, worldName) {
+ if (!state.activeId) return
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (!srv) return
+
+ const confirmed = await confirmDialog(
+ 'Восстановить бэкап? Текущий мир будет заменён!',
+ 'Восстановление бэкапа'
+ )
+ if (!confirmed) return
+
+ showToast('Восстанавливаем бэкап...')
+
+ try {
+ await api.restoreBackup(backupPath, srv.dir, worldName)
+ showToast('Бэкап восстановлен!')
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+async function deleteBackup(backupPath, backupName) {
+ const confirmed = await confirmDialog(
+ `Удалить бэкап "${backupName}"?`,
+ 'Удаление бэкапа'
+ )
+ if (!confirmed) return
+
+ try {
+ await api.deleteBackup(backupPath)
+ showToast('Бэкап удалён')
+ loadBackups()
+ } catch (e) {
+ showToast('Ошибка: ' + e.message, true)
+ }
+}
+
+// ── Create modal ───────────────────────────────────────────
+function openCreateModal() {
+ const modal = document.getElementById('createModal')
+ modal.classList.add('open')
+
+ // Translate modal title
+ const modalTitle = modal.querySelector('.modal-title')
+ if (modalTitle) modalTitle.textContent = t('newServerTitle')
+
+ // Translate core badges
+ const badges = modal.querySelectorAll('.core-badge')
+ badges.forEach(badge => {
+ if (badge.classList.contains('badge-rec')) {
+ badge.textContent = t('recommended')
+ } else if (badge.classList.contains('badge-warn')) {
+ badge.textContent = t('needMoreRam')
+ }
+ })
+
+ // Translate form labels in create modal
+ const formLabels = modal.querySelectorAll('.form-label')
+ if (formLabels[0]) formLabels[0].textContent = t('core')
+ if (formLabels[1]) formLabels[1].textContent = t('name')
+ if (formLabels[2]) formLabels[2].textContent = t('version')
+ if (formLabels[3]) formLabels[3].textContent = t('maxPlayersLabel')
+ if (formLabels[4]) formLabels[4].textContent = t('gamemodeLabel')
+ if (formLabels[5]) formLabels[5].textContent = t('difficultyLabel')
+
+ // Translate buttons
+ const modalButtons = modal.querySelectorAll('.modal-footer .btn')
+ if (modalButtons[0]) modalButtons[0].textContent = t('cancel')
+ if (modalButtons[1]) modalButtons[1].textContent = t('createServer')
+
+ loadCoreVersions()
+}
+function closeCreateModal() {
+ document.getElementById('createModal').classList.remove('open')
+ document.getElementById('downloadProgress').style.display = 'none'
+ document.getElementById('btnCreate').disabled = false
+ document.getElementById('btnCreate').textContent = t('createServer')
+}
+
+function selectCore(el, core) {
+ document.querySelectorAll('.core-card').forEach(c => c.classList.remove('selected'))
+ el.classList.add('selected')
+ state.activeCore = core
+ loadCoreVersions()
+}
+
+async function loadCoreVersions() {
+ const sel = document.getElementById('newVersion')
+ sel.innerHTML = '<option>' + t('loading') + '</option>'
+ try {
+ const versions = await api.getCoreVersions(state.activeCore)
+ sel.innerHTML = versions.map(v => `<option value="${v}">${v}</option>`).join('')
+ } catch { sel.innerHTML = '<option>Ошибка загрузки</option>' }
+}
+
+async function createServer() {
+ const name = document.getElementById('newName').value.trim()
+ if (!name) {
+ await alertDialog('Введи название сервера', 'Ошибка')
+ return
+ }
+
+ const opts = {
+ name,
+ core: state.activeCore,
+ version: document.getElementById('newVersion').value,
+ port: parseInt(document.getElementById('newPort').value) || 25565,
+ maxPlayers: parseInt(document.getElementById('newMaxPlayers').value) || 20,
+ gamemode: document.getElementById('newGamemode').value,
+ difficulty: document.getElementById('newDifficulty').value,
+ }
+
+ document.getElementById('btnCreate').disabled = true
+ document.getElementById('btnCreate').textContent = 'Создаём...'
+ document.getElementById('downloadProgress').style.display = 'block'
+
+ const unsub = api.onDownloadProgress(({ status, percent }) => {
+ document.getElementById('downloadStatus').textContent =
+ status === 'downloading' ? `Скачиваем ядро... ${percent}%` :
+ status === 'ready' ? 'Готово!' : status
+ document.getElementById('progressBar').style.width = percent + '%'
+ })
+
+ try {
+ const server = await api.createServer(opts)
+ state.servers.unshift(server)
+ renderSidebar()
+ closeCreateModal()
+ selectServer(server.id)
+ } catch (e) {
+ await alertDialog('Ошибка: ' + e.message, 'Ошибка создания')
+ document.getElementById('btnCreate').disabled = false
+ document.getElementById('btnCreate').textContent = t('createServer')
+ } finally {
+ if (unsub) unsub()
+ }
+}
+
+// ── Helpers ────────────────────────────────────────────────
+function esc(str) {
+ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+}
+
+function formatUptime(secs) {
+ if (!secs) return '—'
+ if (secs < 60) return secs + 'с'
+ if (secs < 3600) return Math.floor(secs/60) + 'м'
+ return Math.floor(secs/3600) + 'ч ' + Math.floor((secs%3600)/60) + 'м'
+}
+
+function showToast(msg, err=false) {
+ const t = document.createElement('div')
+ t.style.cssText = `position:fixed;bottom:20px;right:20px;background:${err?'var(--red-bg)':'var(--green-bg)'};border:1px solid ${err?'#7f1d1d':'var(--green-dim)'};color:${err?'var(--red)':'var(--green)'};padding:10px 16px;border-radius:8px;font-size:13px;z-index:999;`
+ t.textContent = msg
+ document.body.appendChild(t)
+ setTimeout(() => t.remove(), 3000)
+}
+
+// ── Settings ───────────────────────────────────────────────
+function openSettings() {
+ const modal = document.getElementById('settingsModal')
+ modal.classList.add('open')
+
+ // Update modal title and section titles
+ const modalTitle = modal.querySelector('.modal-title')
+ if (modalTitle) modalTitle.textContent = t('settingsTitle')
+
+ const sectionTitles = modal.querySelectorAll('.section-title')
+ if (sectionTitles[0]) sectionTitles[0].textContent = t('performanceTitle').toUpperCase()
+ if (sectionTitles[1]) sectionTitles[1].textContent = t('interfaceTitle').toUpperCase()
+
+ // Update form labels
+ const formLabels = modal.querySelectorAll('.form-label')
+ if (formLabels[0]) formLabels[0].textContent = t('maxLogsLabel')
+ if (formLabels[1]) formLabels[1].textContent = t('stoppedLogsLabel')
+ if (formLabels[2]) formLabels[2].textContent = t('statsIntervalLabel')
+ if (formLabels[3]) formLabels[3].textContent = t('cacheTimeLabel')
+ if (formLabels[4]) formLabels[4].textContent = t('maxPluginFilesLabel')
+ if (formLabels[5]) formLabels[5].textContent = t('language')
+ if (formLabels[6]) formLabels[6].textContent = t('theme')
+ if (formLabels[7]) formLabels[7].textContent = t('accentColor')
+ if (formLabels[8]) formLabels[8].textContent = t('successColor')
+ if (formLabels[9]) formLabels[9].textContent = t('errorColor')
+ if (formLabels[10]) formLabels[10].textContent = t('warningColor')
+
+ // Update theme options
+ const themeSelect = document.getElementById('settingTheme')
+ if (themeSelect) {
+ themeSelect.innerHTML = `
+ <option value="dark">${t('dark')}</option>
+ <option value="light">${t('light')}</option>
+ `
+ }
+
+ // Update buttons
+ const modalButtons = modal.querySelectorAll('.modal-footer .btn')
+ if (modalButtons[0]) modalButtons[0].textContent = t('cancel')
+ if (modalButtons[1]) modalButtons[1].textContent = ' ' + t('save')
+
+ // Update setting hints
+ const hints = modal.querySelectorAll('.setting-hint')
+ hints.forEach(hint => {
+ const hintType = hint.getAttribute('data-hint')
+ if (hintType === 'maxLogs') hint.textContent = t('hintMaxLogs')
+ else if (hintType === 'stoppedLogs') hint.textContent = t('hintStoppedLogs')
+ else if (hintType === 'statsInterval') hint.textContent = t('hintStatsInterval')
+ else if (hintType === 'cacheTime') hint.textContent = t('hintCacheTime')
+ else if (hintType === 'maxPluginFiles') hint.textContent = t('hintMaxPluginFiles')
+ })
+ // Add style to hints
+ hints.forEach(hint => {
+ hint.style.fontSize = '11px'
+ hint.style.color = 'var(--text3)'
+ hint.style.marginTop = '4px'
+ })
+
+ // Load saved settings from localStorage
+ const settings = JSON.parse(localStorage.getItem('mcpanel_settings') || '{}')
+
+ document.getElementById('settingMaxLogs').value = settings.maxLogs || 1000
+ document.getElementById('settingStoppedLogs').value = settings.stoppedLogs || 100
+ document.getElementById('settingStatsInterval').value = settings.statsInterval || 10
+ document.getElementById('settingCacheTime').value = settings.cacheTime || 30
+ document.getElementById('settingMaxPluginFiles').value = settings.maxPluginFiles || 0
+ document.getElementById('settingLanguage').value = settings.language || 'ru'
+ document.getElementById('settingTheme').value = settings.theme || 'dark'
+
+ // Add language change listener for instant preview (only once)
+ const langSelect = document.getElementById('settingLanguage')
+ const existingHandler = langSelect.onchange
+ if (!existingHandler) {
+ langSelect.onchange = (e) => {
+ window.appSettings = window.appSettings || {}
+ window.appSettings.language = e.target.value
+ updateUILanguage()
+
+ // Re-translate modal content without reopening
+ const modal = document.getElementById('settingsModal')
+ const modalTitle = modal.querySelector('.modal-title')
+ if (modalTitle) modalTitle.textContent = t('settingsTitle')
+
+ const sectionTitles = modal.querySelectorAll('.section-title')
+ if (sectionTitles[0]) sectionTitles[0].textContent = t('performanceTitle').toUpperCase()
+ if (sectionTitles[1]) sectionTitles[1].textContent = t('interfaceTitle').toUpperCase()
+
+ const formLabels = modal.querySelectorAll('.form-label')
+ if (formLabels[0]) formLabels[0].textContent = t('maxLogsLabel')
+ if (formLabels[1]) formLabels[1].textContent = t('stoppedLogsLabel')
+ if (formLabels[2]) formLabels[2].textContent = t('statsIntervalLabel')
+ if (formLabels[3]) formLabels[3].textContent = t('cacheTimeLabel')
+ if (formLabels[4]) formLabels[4].textContent = t('maxPluginFilesLabel')
+ if (formLabels[5]) formLabels[5].textContent = t('language')
+ if (formLabels[6]) formLabels[6].textContent = t('theme')
+ if (formLabels[7]) formLabels[7].textContent = t('accentColor')
+ if (formLabels[8]) formLabels[8].textContent = t('successColor')
+ if (formLabels[9]) formLabels[9].textContent = t('errorColor')
+ if (formLabels[10]) formLabels[10].textContent = t('warningColor')
+
+ const themeSelect = document.getElementById('settingTheme')
+ const currentTheme = themeSelect.value
+ themeSelect.innerHTML = `
+ <option value="dark">${t('dark')}</option>
+ <option value="light">${t('light')}</option>
+ `
+ themeSelect.value = currentTheme
+
+ const modalButtons = modal.querySelectorAll('.modal-footer .btn')
+ if (modalButtons[0]) modalButtons[0].textContent = t('cancel')
+ if (modalButtons[1]) modalButtons[1].textContent = ' ' + t('save')
+
+ const hints = modal.querySelectorAll('.setting-hint')
+ hints.forEach(hint => {
+ const hintType = hint.getAttribute('data-hint')
+ if (hintType === 'maxLogs') hint.textContent = t('hintMaxLogs')
+ else if (hintType === 'stoppedLogs') hint.textContent = t('hintStoppedLogs')
+ else if (hintType === 'statsInterval') hint.textContent = t('hintStatsInterval')
+ else if (hintType === 'cacheTime') hint.textContent = t('hintCacheTime')
+ else if (hintType === 'maxPluginFiles') hint.textContent = t('hintMaxPluginFiles')
+ })
+
+ // Update server meta if a server is selected
+ if (state.activeId) {
+ const srv = state.servers.find(s => s.id === state.activeId)
+ if (srv) updateServerMeta(srv)
+ }
+ }
+ }
+
+ const accentColor = settings.accentColor || '#7c3aed'
+ const greenColor = settings.greenColor || '#22c55e'
+ const redColor = settings.redColor || '#ef4444'
+ const amberColor = settings.amberColor || '#f59e0b'
+
+ document.getElementById('settingAccentColor').value = accentColor
+ document.getElementById('settingAccentColorHex').value = accentColor
+ document.getElementById('settingGreenColor').value = greenColor
+ document.getElementById('settingGreenColorHex').value = greenColor
+ document.getElementById('settingRedColor').value = redColor
+ document.getElementById('settingRedColorHex').value = redColor
+ document.getElementById('settingAmberColor').value = amberColor
+ document.getElementById('settingAmberColorHex').value = amberColor
+}
+
+function closeSettingsModal() {
+ document.getElementById('settingsModal').classList.remove('open')
+}
+
+function saveSettings() {
+ const settings = {
+ maxLogs: parseInt(document.getElementById('settingMaxLogs').value) || 1000,
+ stoppedLogs: parseInt(document.getElementById('settingStoppedLogs').value) || 100,
+ statsInterval: parseInt(document.getElementById('settingStatsInterval').value) || 10,
+ cacheTime: parseInt(document.getElementById('settingCacheTime').value) || 30,
+ maxPluginFiles: parseInt(document.getElementById('settingMaxPluginFiles').value) || 0,
+ language: document.getElementById('settingLanguage').value || 'ru',
+ theme: document.getElementById('settingTheme').value || 'dark',
+ accentColor: document.getElementById('settingAccentColor').value || '#7c3aed',
+ greenColor: document.getElementById('settingGreenColor').value || '#22c55e',
+ redColor: document.getElementById('settingRedColor').value || '#ef4444',
+ amberColor: document.getElementById('settingAmberColor').value || '#f59e0b'
+ }
+
+ // Validate settings
+ if (settings.maxLogs < 100 || settings.maxLogs > 5000) {
+ showToast(t('errorMaxLogs'), true)
+ return
+ }
+ if (settings.stoppedLogs < 50 || settings.stoppedLogs > 500) {
+ showToast(t('errorStoppedLogs'), true)
+ return
+ }
+ if (settings.statsInterval < 5 || settings.statsInterval > 60) {
+ showToast(t('errorStatsInterval'), true)
+ return
+ }
+ if (settings.cacheTime < 10 || settings.cacheTime > 300) {
+ showToast(t('errorCacheTime'), true)
+ return
+ }
+ if (settings.maxPluginFiles < 0 || settings.maxPluginFiles > 1000) {
+ showToast(t('errorMaxPluginFiles'), true)
+ return
+ }
+
+ // Save to localStorage
+ localStorage.setItem('mcpanel_settings', JSON.stringify(settings))
+
+ // Apply settings
+ window.appSettings = settings
+ applyTheme()
+ applyColors()
+ updateUILanguage()
+
+ showToast(t('settingsSaved'))
+ closeSettingsModal()
+}
+
+function updateUILanguage() {
+ // Update static text elements
+ const sidebarLabel = document.querySelector('.sidebar-label')
+ if (sidebarLabel) sidebarLabel.textContent = t('servers').toUpperCase()
+
+ const newServerBtns = document.querySelectorAll('.new-server-btn')
+ if (newServerBtns[0]) newServerBtns[0].textContent = t('newServer')
+ if (newServerBtns[1]) newServerBtns[1].textContent = t('settings')
+
+ // Update empty state
+ const emptyTitle = document.querySelector('.empty-title')
+ const emptySub = document.querySelector('.empty-sub')
+ if (emptyTitle) emptyTitle.textContent = t('selectServer')
+ if (emptySub) emptySub.textContent = t('orCreateNew')
+
+ // Update tabs
+ const tabs = document.querySelectorAll('.tab')
+ if (tabs[0]) tabs[0].textContent = t('overview')
+ if (tabs[1]) tabs[1].textContent = t('config')
+ if (tabs[2]) tabs[2].textContent = 'Paper'
+ if (tabs[3]) tabs[3].textContent = t('plugins')
+ if (tabs[4]) tabs[4].textContent = t('backups')
+
+ // Update buttons
+ const btnRestart = document.getElementById('btnRestart')
+ const btnStart = document.getElementById('btnStart')
+ const btnStop = document.getElementById('btnStop')
+ if (btnRestart) {
+ btnRestart.innerHTML = ''
+ btnRestart.textContent = '↺ ' + t('restart')
+ }
+ if (btnStart) {
+ btnStart.innerHTML = ''
+ btnStart.textContent = '▶ ' + t('start')
+ }
+ if (btnStop) {
+ btnStop.innerHTML = ''
+ btnStop.textContent = '■ ' + t('stop')
+ }
+
+ // Update stat labels
+ const statLabels = document.querySelectorAll('.stat-label')
+ if (statLabels[0]) statLabels[0].textContent = t('players').toUpperCase()
+ if (statLabels[1]) statLabels[1].textContent = t('ram')
+ if (statLabels[2]) statLabels[2].textContent = t('uptime').toUpperCase()
+ if (statLabels[3]) statLabels[3].textContent = t('port').toUpperCase()
+
+ const statSubs = document.querySelectorAll('.stat-sub')
+ if (statSubs[0]) statSubs[0].textContent = t('online')
+ if (statSubs[1]) statSubs[1].textContent = t('mbUsed')
+ if (statSubs[2]) statSubs[2].textContent = t('seconds')
+
+ // Update console status
+ const consoleStatus = document.getElementById('consoleStatus')
+ if (consoleStatus && !state.activeId) {
+ consoleStatus.textContent = t('stopped')
+ }
+
+ // Update section titles
+ const sectionTitles = document.querySelectorAll('.section-title')
+ if (sectionTitles[0]) sectionTitles[0].textContent = t('console').toUpperCase()
+ if (sectionTitles[1]) sectionTitles[1].textContent = t('playersOnline').toUpperCase()
+ if (sectionTitles[2]) sectionTitles[2].textContent = t('pluginFilesTitle').toUpperCase()
+ if (sectionTitles[3]) sectionTitles[3].textContent = t('availableBackupsTitle').toUpperCase()
+
+ // Update console input placeholder
+ const cmdInput = document.getElementById('cmdInput')
+ if (cmdInput) cmdInput.placeholder = t('enterCommand')
+
+ // Update config save/reset buttons
+ const configButtons = document.querySelectorAll('#tab-config .btn')
+ if (configButtons[0]) configButtons[0].textContent = t('save')
+ if (configButtons[1]) configButtons[1].textContent = t('reset')
+
+ // Update Paper config buttons
+ const paperButtons = document.querySelectorAll('#tab-paper .btn')
+ if (paperButtons[0]) paperButtons[0].innerHTML = ' ' + t('save')
+ if (paperButtons[1]) paperButtons[1].innerHTML = ' ' + t('reset')
+
+ // Update backup buttons
+ const worldNameInput = document.getElementById('worldName')
+ if (worldNameInput) worldNameInput.placeholder = t('worldName')
+
+ // Update plugin add button
+ const addPluginBtn = document.querySelector('button[onclick="addPluginClick()"]')
+ if (addPluginBtn) addPluginBtn.textContent = t('addPlugin')
+
+ // Update backup buttons
+ const createBackupBtn = document.querySelector('button[onclick="createBackup()"]')
+ const refreshBackupsBtn = document.querySelector('button[onclick="loadBackups()"]')
+ if (createBackupBtn) createBackupBtn.textContent = t('createBackup')
+ if (refreshBackupsBtn) refreshBackupsBtn.textContent = t('refresh')
+
+ // Update "No data" text
+ const playersListNoData = document.querySelector('#playersList div')
+ if (playersListNoData && playersListNoData.textContent.includes('Нет данных')) {
+ playersListNoData.textContent = t('noDataAvailable')
+ }
+
+ // Refresh sidebar to update server list
+ renderSidebar()
+
+ // Reload config if it's already loaded
+ if (state.configLoaded && state.activeId) {
+ loadConfig()
+ }
+}
+
+function showLanguageSelection() {
+ return new Promise((resolve) => {
+ const dialog = document.getElementById('languageDialog')
+ dialog.style.display = 'flex'
+
+ window.selectLanguage = (lang) => {
+ // Save language to settings
+ const settings = JSON.parse(localStorage.getItem('mcpanel_settings') || '{}')
+ settings.language = lang
+ localStorage.setItem('mcpanel_settings', JSON.stringify(settings))
+
+ // Apply language
+ window.appSettings = window.appSettings || {}
+ window.appSettings.language = lang
+
+ // Hide dialog
+ dialog.style.display = 'none'
+
+ resolve()
+ }
+ })
+}
+
+function applyTheme() {
+ const theme = window.appSettings?.theme || 'dark'
+ document.documentElement.setAttribute('data-theme', theme)
+}
+
+function applyColors() {
+ const root = document.documentElement
+ if (window.appSettings?.accentColor) {
+ root.style.setProperty('--accent', window.appSettings.accentColor)
+ root.style.setProperty('--accent2', window.appSettings.accentColor)
+ }
+ if (window.appSettings?.greenColor) {
+ root.style.setProperty('--green', window.appSettings.greenColor)
+ }
+ if (window.appSettings?.redColor) {
+ root.style.setProperty('--red', window.appSettings.redColor)
+ }
+ if (window.appSettings?.amberColor) {
+ root.style.setProperty('--amber', window.appSettings.amberColor)
+ }
+}
+
+function setColor(pickerId, color) {
+ document.getElementById(pickerId).value = color
+ document.getElementById(pickerId + 'Hex').value = color
+}
+
+function syncColorPicker(pickerId, hexValue) {
+ if (/^#[0-9A-F]{6}$/i.test(hexValue)) {
+ document.getElementById(pickerId).value = hexValue
+ }
+}
+
+// Custom dialog functions
+function showDialog(options) {
+ return new Promise((resolve) => {
+ const overlay = document.getElementById('customDialog')
+ const icon = document.getElementById('dialogIcon')
+ const title = document.getElementById('dialogTitle')
+ const message = document.getElementById('dialogMessage')
+ const buttons = document.getElementById('dialogButtons')
+
+ // Set icon
+ icon.className = 'dialog-icon ' + (options.type || 'warning')
+ icon.textContent = options.icon || (options.type === 'danger' ? '️' : options.type === 'info' ? 'ℹ️' : '')
+
+ // Set content
+ title.textContent = options.title || 'Подтверждение'
+ message.textContent = options.message || ''
+
+ // Create buttons
+ buttons.innerHTML = ''
+ if (options.buttons) {
+ options.buttons.forEach(btn => {
+ const button = document.createElement('button')
+ button.className = 'btn ' + (btn.style || '')
+ button.textContent = btn.text
+ button.onclick = () => {
+ overlay.classList.remove('open')
+ resolve(btn.value)
+ }
+ buttons.appendChild(button)
+ })
+ }
+
+ overlay.classList.add('open')
+ })
+}
+
+function confirmDialog(message, title = 'Подтверждение') {
+ return showDialog({
+ type: 'warning',
+ icon: '️',
+ title: title,
+ message: message,
+ buttons: [
+ { text: t('cancel'), style: '', value: false },
+ { text: 'OK', style: 'danger', value: true }
+ ]
+ })
+}
+
+function alertDialog(message, title = 'Внимание') {
+ return showDialog({
+ type: 'info',
+ icon: 'ℹ️',
+ title: title,
+ message: message,
+ buttons: [
+ { text: 'OK', style: 'primary', value: true }
+ ]
+ })
+}
+
+// Close dialog on overlay click
+document.addEventListener('DOMContentLoaded', () => {
+ const overlay = document.getElementById('customDialog')
+ if (overlay) {
+ overlay.addEventListener('click', (e) => {
+ if (e.target === overlay) {
+ overlay.classList.remove('open')
+ }
+ })
+ }
+})
+
+// Load settings on startup
+window.appSettings = JSON.parse(localStorage.getItem('mcpanel_settings') || '{}')
+if (!window.appSettings.maxLogs) window.appSettings.maxLogs = 1000
+if (!window.appSettings.stoppedLogs) window.appSettings.stoppedLogs = 100
+if (!window.appSettings.statsInterval) window.appSettings.statsInterval = 10
+if (!window.appSettings.cacheTime) window.appSettings.cacheTime = 30
+if (!window.appSettings.maxPluginFiles) window.appSettings.maxPluginFiles = 0
+if (!window.appSettings.language) window.appSettings.language = 'ru'
+if (!window.appSettings.theme) window.appSettings.theme = 'dark'
+if (!window.appSettings.accentColor) window.appSettings.accentColor = '#7c3aed'
+if (!window.appSettings.greenColor) window.appSettings.greenColor = '#22c55e'
+if (!window.appSettings.redColor) window.appSettings.redColor = '#ef4444'
+if (!window.appSettings.amberColor) window.appSettings.amberColor = '#f59e0b'
+
+// Translations
+window.translations = {
+ ru: {
+ servers: 'Серверы',
+ noServers: 'Нет серверов',
+ newServer: '+ Новый сервер',
+ settings: '️ Настройки',
+ selectServer: 'Выбери сервер',
+ orCreateNew: 'или создай новый',
+ openFolder: '',
+ restart: '↺ Рестарт',
+ start: '▶ Запустить',
+ stop: '■ Стоп',
+ delete: '',
+ overview: 'Обзор',
+ config: 'Конфиг',
+ plugins: 'Плагины',
+ backups: 'Бэкапы',
+ players: 'Игроки',
+ online: 'онлайн',
+ ram: 'RAM',
+ mbUsed: 'МБ использовано',
+ uptime: 'Аптайм',
+ seconds: 'секунд',
+ port: 'Порт',
+ console: 'Консоль',
+ stopped: 'Остановлен',
+ running: 'Запущен',
+ starting: 'Запускается...',
+ enterCommand: 'Введи команду (Enter)...',
+ playersOnline: 'Игроки онлайн',
+ noData: 'Нет данных',
+ save: 'Сохранить',
+ reset: 'Сбросить',
+ close: 'Закрыть',
+ pluginFiles: 'Файлы плагинов',
+ addPlugin: ' Добавить плагин',
+ worldName: 'Название мира',
+ createBackup: ' Создать бэкап',
+ refresh: '↻ Обновить',
+ availableBackups: 'Доступные бэкапы',
+ loading: 'Загрузка...',
+ noBackups: 'Нет бэкапов',
+ restore: '↻ Восстановить',
+ newServerTitle: 'Новый сервер',
+ core: 'Ядро',
+ recommended: 'Рекомендуется',
+ name: 'Название',
+ version: 'Версия',
+ maxPlayers: 'Макс. игроков',
+ gamemode: 'Режим',
+ difficulty: 'Сложность',
+ cancel: 'Отмена',
+ createServer: 'Создать сервер',
+ settingsTitle: '️ Настройки',
+ performance: 'Производительность',
+ interface: 'Интерфейс',
+ language: 'Язык',
+ theme: 'Тема',
+ dark: 'Тёмная',
+ light: 'Светлая',
+ accentColor: 'Цвет акцента',
+ successColor: 'Цвет успеха (зелёный)',
+ errorColor: 'Цвет ошибки (красный)',
+ warningColor: 'Цвет предупреждения (жёлтый)',
+ settingsSaved: 'Настройки сохранены',
+ serverPort: 'Порт',
+ maxPlayersLabel: 'Макс. игроков',
+ gamemodeLabel: 'Режим',
+ difficultyLabel: 'Сложность',
+ motdLabel: 'MOTD',
+ viewDistance: 'Дальность обзора',
+ onlineMode: 'Online mode',
+ pvpLabel: 'PvP',
+ whitelist: 'Whitelist',
+ spawnMonsters: 'Спавн мобов',
+ folders: 'Папки',
+ jarFiles: 'JAR файлы',
+ noPlugins: 'Нет плагинов',
+ noDataAvailable: 'Нет данных',
+ availableBackupsTitle: 'Доступные бэкапы',
+ pluginFilesTitle: 'Файлы плагинов',
+ performanceTitle: 'Производительность',
+ interfaceTitle: 'Интерфейс',
+ maxLogsLabel: 'Максимум логов в памяти (когда сервер запущен)',
+ stoppedLogsLabel: 'Логов после остановки сервера',
+ statsIntervalLabel: 'Интервал обновления статистики (секунды)',
+ cacheTimeLabel: 'Время кэширования данных (секунды)',
+ maxPluginFilesLabel: 'Максимум файлов в браузере плагинов',
+ errorMaxLogs: 'Максимум логов должен быть от 100 до 5000',
+ errorStoppedLogs: 'Логов после остановки должно быть от 50 до 500',
+ errorStatsInterval: 'Интервал статистики должен быть от 5 до 60 секунд',
+ errorCacheTime: 'Время кэширования должно быть от 10 до 300 секунд',
+ errorMaxPluginFiles: 'Максимум файлов должен быть от 0 до 1000',
+ configSaved: 'Конфиг сохранён',
+ showingFirst: 'Показано первых',
+ elementsSettings: 'элементов (настройка в ️ Настройки)',
+ needMoreRam: 'Нужно больше RAM',
+ heavyModpacks: 'Тяжёлые модпаки',
+ fast: 'Быстрый',
+ stable: 'Стабильный',
+ errorMaxPlayersRange: 'Макс. игроков должно быть от 1 до 10000',
+ proxyServer: 'прокси-сервер',
+ max: 'макс',
+ back: 'Назад',
+ totalItems: 'Всего элементов',
+ foldersCount: 'папок',
+ filesCount: 'файлов',
+ folderEmpty: 'Папка пуста',
+ error: 'Ошибка',
+ loadingError: 'Ошибка загрузки',
+ hintMaxLogs: 'По умолчанию: 1000 строк',
+ hintStoppedLogs: 'По умолчанию: 100 строк',
+ hintStatsInterval: 'По умолчанию: 10 секунд',
+ hintCacheTime: 'По умолчанию: 30 секунд',
+ hintMaxPluginFiles: '0 = показывать все файлы, иначе лимит',
+ stoppingServer: 'Останавливаем сервер',
+ errorPortRange: 'Порт должен быть от 1 до 65535',
+ specified: 'указан'
+ },
+ en: {
+ servers: 'Servers',
+ noServers: 'No servers',
+ newServer: '+ New server',
+ settings: '️ Settings',
+ selectServer: 'Select a server',
+ orCreateNew: 'or create a new one',
+ openFolder: '',
+ restart: '↺ Restart',
+ start: '▶ Start',
+ stop: '■ Stop',
+ delete: '',
+ overview: 'Overview',
+ config: 'Config',
+ plugins: 'Plugins',
+ backups: 'Backups',
+ players: 'Players',
+ online: 'online',
+ ram: 'RAM',
+ mbUsed: 'MB used',
+ uptime: 'Uptime',
+ seconds: 'seconds',
+ port: 'Port',
+ console: 'Console',
+ stopped: 'Stopped',
+ running: 'Running',
+ starting: 'Starting...',
+ enterCommand: 'Enter command (Enter)...',
+ playersOnline: 'Players online',
+ noData: 'No data',
+ save: 'Save',
+ reset: 'Reset',
+ close: 'Close',
+ pluginFiles: 'Plugin files',
+ addPlugin: ' Add plugin',
+ worldName: 'World name',
+ createBackup: ' Create backup',
+ refresh: '↻ Refresh',
+ availableBackups: 'Available backups',
+ loading: 'Loading...',
+ noBackups: 'No backups',
+ restore: '↻ Restore',
+ newServerTitle: 'New server',
+ core: 'Core',
+ recommended: 'Recommended',
+ name: 'Name',
+ version: 'Version',
+ maxPlayers: 'Max players',
+ gamemode: 'Gamemode',
+ difficulty: 'Difficulty',
+ cancel: 'Cancel',
+ createServer: 'Create server',
+ settingsTitle: '️ Settings',
+ performance: 'Performance',
+ interface: 'Interface',
+ language: 'Language',
+ theme: 'Theme',
+ dark: 'Dark',
+ light: 'Light',
+ accentColor: 'Accent color',
+ successColor: 'Success color (green)',
+ errorColor: 'Error color (red)',
+ warningColor: 'Warning color (yellow)',
+ settingsSaved: 'Settings saved',
+ serverPort: 'Port',
+ maxPlayersLabel: 'Max players',
+ gamemodeLabel: 'Gamemode',
+ difficultyLabel: 'Difficulty',
+ motdLabel: 'MOTD',
+ viewDistance: 'View distance',
+ onlineMode: 'Online mode',
+ pvpLabel: 'PvP',
+ whitelist: 'Whitelist',
+ spawnMonsters: 'Spawn monsters',
+ folders: 'Folders',
+ jarFiles: 'JAR files',
+ noPlugins: 'No plugins',
+ noDataAvailable: 'No data',
+ availableBackupsTitle: 'Available backups',
+ pluginFilesTitle: 'Plugin files',
+ performanceTitle: 'Performance',
+ interfaceTitle: 'Interface',
+ maxLogsLabel: 'Max logs in memory (when server is running)',
+ stoppedLogsLabel: 'Logs after server stops',
+ statsIntervalLabel: 'Stats update interval (seconds)',
+ cacheTimeLabel: 'Cache time (seconds)',
+ maxPluginFilesLabel: 'Max files in plugin browser',
+ errorMaxLogs: 'Max logs must be between 100 and 5000',
+ errorStoppedLogs: 'Stopped logs must be between 50 and 500',
+ errorStatsInterval: 'Stats interval must be between 5 and 60 seconds',
+ errorCacheTime: 'Cache time must be between 10 and 300 seconds',
+ errorMaxPluginFiles: 'Max plugin files must be between 0 and 1000',
+ configSaved: 'Config saved',
+ showingFirst: 'Showing first',
+ elementsSettings: 'elements (setting in ️ Settings)',
+ needMoreRam: 'Need more RAM',
+ heavyModpacks: 'Heavy modpacks',
+ fast: 'Fast',
+ stable: 'Stable',
+ errorMaxPlayersRange: 'Max players must be between 1 and 10000',
+ proxyServer: 'proxy server',
+ max: 'max',
+ back: 'Back',
+ totalItems: 'Total items',
+ foldersCount: 'folders',
+ filesCount: 'files',
+ folderEmpty: 'Folder is empty',
+ error: 'Error',
+ loadingError: 'Loading error',
+ hintMaxLogs: 'Default: 1000 lines',
+ hintStoppedLogs: 'Default: 100 lines',
+ hintStatsInterval: 'Default: 10 seconds',
+ hintCacheTime: 'Default: 30 seconds',
+ hintMaxPluginFiles: '0 = show all files, otherwise limit',
+ stoppingServer: 'Stopping server',
+ errorPortRange: 'Port must be between 1 and 65535',
+ specified: 'specified'
+ }
+}
+
+function t(key) {
+ const lang = window.appSettings?.language || 'ru'
+ return window.translations[lang]?.[key] || key
+}
+
+// Apply theme and colors on startup
+applyTheme()
+applyColors()
+
+// Close modal on overlay click
+document.getElementById('createModal').addEventListener('click', (e) => {
+ if (e.target === e.currentTarget) closeCreateModal()
+})
+document.getElementById('settingsModal').addEventListener('click', (e) => {
+ if (e.target === e.currentTarget) closeSettingsModal()
+})
+
+init()
+</script>
+</body>
+</html>
